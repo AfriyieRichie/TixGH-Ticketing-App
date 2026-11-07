@@ -1,0 +1,8 @@
+{% extends "notifications/_base.html" %}{% block content %}
+<p style="font-size:16px;margin:0 0 16px"><b>{{ from_name }}</b> sent you a ticket.</p>
+<h2 style="margin:0 0 4px;font-size:20px">{{ event.title }}</h2>
+<p style="margin:0;color:#3f3f46">{{ when }}<br>{{ where }}<br><b>{{ ticket.ticket_type.name }}</b></p>
+<p style="text-align:center;margin:24px 0">
+<a href="{{ ticket.page_url }}" style="background:#0F766E;color:#ffffff;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">View my ticket</a></p>
+<p style="font-size:13px;color:#3f3f46">Your ticket is attached as a PDF. Show the QR code at the entrance.</p>
+{% endblock %}

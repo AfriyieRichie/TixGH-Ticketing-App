@@ -1,0 +1,5 @@
+Hi {{ order.buyer_name }}, {{ event.title }} is coming up!
+{{ when }}
+{{ where }}
+
+Your tickets: {{ order.tickets_url }}

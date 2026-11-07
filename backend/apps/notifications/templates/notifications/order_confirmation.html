@@ -1,0 +1,17 @@
+{% extends "notifications/_base.html" %}{% block content %}
+<p style="font-size:16px;margin:0 0 8px">Hi {{ order.buyer_name }},</p>
+<p style="margin:0 0 16px">You're going! Here are your tickets.</p>
+<h2 style="margin:0 0 4px;font-size:20px">{{ event.title }}</h2>
+<p style="margin:0;color:#3f3f46">{{ when }}<br>{{ where }}</p>
+<table width="100%" style="margin:16px 0;border-collapse:collapse;font-size:14px">
+{% for item in order.items.all %}<tr><td style="padding:4px 0">{{ item.quantity }} × {{ item.ticket_type.name }}</td>
+<td align="right">GHS {{ item.line_total }}</td></tr>{% endfor %}
+{% if order.discount_total %}<tr><td style="padding:4px 0;color:#16a34a">Discount ({{ order.promo_code.code }})</td><td align="right" style="color:#16a34a">−GHS {{ order.discount_total }}</td></tr>{% endif %}
+<tr><td style="padding:8px 0;border-top:1px solid #e4e4e7;font-weight:bold">Total paid</td>
+<td align="right" style="border-top:1px solid #e4e4e7;font-weight:bold">GHS {{ order.total }}</td></tr>
+</table>
+<p style="text-align:center;margin:24px 0">
+<a href="{{ order.tickets_url }}" style="background:#0F766E;color:#ffffff;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">View my tickets</a></p>
+<p style="font-size:13px;color:#3f3f46">Your tickets are also attached as a PDF. Show the QR code at the entrance. Each QR works once, so don't share it.</p>
+<p style="font-size:12px;color:#71717a">Order {{ order.reference }} · Ticket codes: {% for t in tickets %}{{ t.code }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+{% endblock %}

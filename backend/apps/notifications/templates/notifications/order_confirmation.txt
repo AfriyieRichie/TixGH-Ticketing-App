@@ -1,0 +1,12 @@
+Hi {{ order.buyer_name }},
+
+You're going to {{ event.title }}!
+{{ when }}
+{{ where }}
+
+{% for item in order.items.all %}{{ item.quantity }} x {{ item.ticket_type.name }}  GHS {{ item.line_total }}
+{% endfor %}Total paid: GHS {{ order.total }}
+
+View your tickets: {{ order.tickets_url }}
+Ticket codes: {% for t in tickets %}{{ t.code }} {% endfor %}
+Order {{ order.reference }}. Your tickets are attached as a PDF. Show the QR code at the entrance.

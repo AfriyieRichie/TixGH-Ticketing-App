@@ -1,0 +1,6 @@
+{{ from_name }} sent you a ticket for {{ event.title }}.
+{{ when }}
+{{ where }}
+Ticket: {{ ticket.ticket_type.name }} ({{ ticket.code }})
+
+View your ticket: {{ ticket.page_url }}

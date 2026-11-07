@@ -1,0 +1,9 @@
+{% extends "notifications/_base.html" %}{% block content %}
+<p style="font-size:16px;margin:0 0 8px">Hi {{ order.buyer_name }},</p>
+<p><b>{{ event.title }}</b> is coming up!</p>
+<p style="margin:0;color:#3f3f46">{{ when }}<br>{{ where }}</p>
+{% if event.venue.directions %}<p style="font-size:13px;color:#3f3f46">Getting there: {{ event.venue.directions }}</p>{% endif %}
+<p style="text-align:center;margin:24px 0">
+<a href="{{ order.tickets_url }}" style="background:#0F766E;color:#ffffff;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Open my tickets</a></p>
+<p style="font-size:13px;color:#3f3f46">Tip: open your tickets before you leave home in case the network is slow at the venue.</p>
+{% endblock %}

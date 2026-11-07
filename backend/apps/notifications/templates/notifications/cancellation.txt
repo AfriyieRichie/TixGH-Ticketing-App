@@ -1,0 +1,6 @@
+Hi {{ order.buyer_name }},
+
+We're sorry: {{ event.title }} ({{ when }}) has been cancelled by the organizer.
+{% if reason %}Reason: {{ reason }}
+{% endif %}
+Your refund for order {{ order.reference }} (GHS {{ order.total }}) will be processed to your original payment method.

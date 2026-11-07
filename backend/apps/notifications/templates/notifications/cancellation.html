@@ -1,0 +1,6 @@
+{% extends "notifications/_base.html" %}{% block content %}
+<p style="font-size:16px;margin:0 0 8px">Hi {{ order.buyer_name }},</p>
+<p>We're sorry: <b>{{ event.title }}</b> ({{ when }}) has been <b>cancelled</b> by the organizer.</p>
+{% if reason %}<p style="background:#f4f4f5;padding:12px;border-radius:8px">"{{ reason }}"</p>{% endif %}
+<p>Your refund for order <b>{{ order.reference }}</b> (GHS {{ order.total }}) will be processed to your original payment method. We'll let you know when it's done.</p>
+{% endblock %}
