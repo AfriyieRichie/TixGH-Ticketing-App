@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.dispatch import dispatch
 from apps.events.models import Event
 from apps.notifications.tasks import deliver_order_confirmation
 from apps.payments.gateways import GatewayError
@@ -156,5 +157,5 @@ class OrderResendView(APIView):
         order = _load_order(request, reference)
         if order.status != OrderStatus.PAID:
             raise ValidationError({"detail": "Tickets are sent once the order is paid."})
-        deliver_order_confirmation.delay(order.pk)
+        dispatch(deliver_order_confirmation, order.pk)
         return Response({"detail": "Tickets re-sent."}, status=status.HTTP_202_ACCEPTED)

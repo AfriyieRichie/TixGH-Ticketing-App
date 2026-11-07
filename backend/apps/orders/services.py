@@ -18,6 +18,7 @@ from django.db import transaction
 from django.db.models import F, Q, Sum
 from django.utils import timezone
 
+from apps.core.dispatch import dispatch
 from apps.events.models import Event, PromoCode, TicketType, TicketVisibility
 from apps.events.pricing import price_breakdown
 from apps.notifications.tasks import deliver_order_confirmation
@@ -206,7 +207,7 @@ def fulfil_order(order: Order, amount_paid: Decimal | None) -> Order:
         order.paid_at = timezone.now()
         order.save(update_fields=["status", "paid_at", "updated_at"])
         order_pk = order.pk
-        transaction.on_commit(lambda: deliver_order_confirmation.delay(order_pk))
+        transaction.on_commit(lambda: dispatch(deliver_order_confirmation, order_pk))
     logger.info("Order %s paid; %s ticket(s) issued", order.reference, order.ticket_count)
     return order
 

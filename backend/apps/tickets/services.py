@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.dispatch import dispatch
 from apps.accounts.otp import Contact
 from apps.events.models import EventStatus
 from apps.notifications.tasks import deliver_transfer_notice
@@ -58,5 +59,5 @@ def transfer_ticket(ticket: Ticket, *, by_user, to: Contact, to_name: str) -> Ti
             to_contact=to.value, old_code=old_code, new_code=ticket.code,
         )
         sender = by_user.full_name or "A friend"
-        transaction.on_commit(lambda: deliver_transfer_notice.delay(ticket.pk, sender))
+        transaction.on_commit(lambda: dispatch(deliver_transfer_notice, ticket.pk, sender))
     return ticket

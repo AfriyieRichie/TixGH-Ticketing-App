@@ -34,9 +34,21 @@ function CheckoutComplete() {
       setOrder(o);
       setError("");
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 404
-        ? "We couldn't find this order on this device. Check your SMS or email for your tickets."
-        : "We couldn't confirm your payment yet.");
+      if (e instanceof ApiError && e.status === 404) {
+        setError("We couldn't find this order on this device. Check your SMS or email for your tickets.");
+        return;
+      }
+      // Confirmation can be slow (e.g. a server waking up). The order may
+      // already be paid via Paystack's webhook, so show its current state.
+      try {
+        const o = token
+          ? await apiFetch<Order>(`/orders/${reference}/${q}`)
+          : await request<Order>(`/orders/${reference}/`);
+        setOrder(o);
+        setError("");
+      } catch {
+        setError("We couldn't confirm your payment yet.");
+      }
     }
   }, [params, reference, request]);
 

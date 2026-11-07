@@ -229,6 +229,9 @@ EMAIL_BACKEND = env(
     "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
 )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=f"{PLATFORM_NAME} <no-reply@tixgh.com>")
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=15)
+# For EMAIL_BACKEND=apps.core.email_backends.BrevoAPIBackend (works where SMTP is blocked)
+BREVO_API_KEY = env("BREVO_API_KEY", default="")
 if not EMAIL_BACKEND.endswith("console.EmailBackend"):
     EMAIL_HOST = env("EMAIL_HOST", default="")
     EMAIL_PORT = env.int("EMAIL_PORT", default=587)

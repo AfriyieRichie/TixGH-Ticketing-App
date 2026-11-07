@@ -13,6 +13,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from apps.core.dispatch import dispatch
 from apps.notifications.tasks import deliver_cancellation
 from apps.organizations.models import Perm
 from apps.organizations.permissions import OrgScopedMixin
@@ -140,7 +141,7 @@ class EventViewSet(_EventsPermMixin, viewsets.ModelViewSet):
         event.cancellation_reason = ser.validated_data["reason"]
         event.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
         event_pk = event.pk
-        transaction.on_commit(lambda: deliver_cancellation.delay(event_pk))
+        transaction.on_commit(lambda: dispatch(deliver_cancellation, event_pk))
         return self._respond(event)
 
     @extend_schema(request=None)

@@ -81,6 +81,21 @@ Tickets are now issued even if a buyer closes the browser after paying.
 
 ---
 
+## 8. Email delivery: Brevo
+Render's free plan blocks SMTP (Gmail SMTP won't work there), so email goes through Brevo's web API.
+1. Sign up at **brevo.com** (free: 300 emails/day).
+2. **Senders, Domains & Dedicated IPs → Senders → Add a sender** with the address emails should come from, then verify it from the email Brevo sends.
+3. **SMTP & API → API Keys → Generate a new API key** → copy it (starts with `xkeysib-`).
+4. In Render → Environment, set:
+   | Key | Value |
+   |---|---|
+   | EMAIL_BACKEND | `apps.core.email_backends.BrevoAPIBackend` |
+   | BREVO_API_KEY | your Brevo API key |
+   | DEFAULT_FROM_EMAIL | `TixGH <the verified sender address>` |
+   The `EMAIL_HOST*` / `EMAIL_PORT` / `EMAIL_USE_TLS` settings aren't used with Brevo and can be deleted.
+
+Until you have your own domain, emails sent from a Gmail address may land in Spam.
+
 ## Signing in on staging
 SMS isn't connected yet, so login codes are printed in **Render → your service → Logs** (search for `[SMS]`).
 You can also sign in with **Use password instead** using your admin email and password.
