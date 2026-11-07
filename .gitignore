@@ -21,3 +21,6 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Personal notes and keys: never committed
+private/
