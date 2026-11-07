@@ -1,12 +1,21 @@
+import hmac
+import logging
+
 from django.conf import settings
+from django.http import Http404
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, inline_serializer
 
+from apps.notifications.services import send_due_reminders
+from apps.orders.services import expire_stale_orders
+
 from .constants import GhanaRegion, MobileMoneyProvider
 from .models import PlatformSettings
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(responses=inline_serializer("Health", {"status": serializers.CharField()}))
@@ -39,3 +48,21 @@ def public_config(request):
             ],
         }
     )
+
+
+@extend_schema(exclude=True)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def cron(request):
+    """
+    Periodic jobs for hosts without a background worker. Call every ~10 minutes
+    (e.g. from cron-job.org) with header  X-Cron-Secret: <CRON_SECRET>.
+    Also keeps a free server from going to sleep.
+    """
+    secret = settings.CRON_SECRET
+    given = request.headers.get("X-Cron-Secret", "")
+    if not secret or not hmac.compare_digest(given, secret):
+        raise Http404
+    result = {"expired_orders": expire_stale_orders(), "reminders_sent": send_due_reminders()}
+    logger.info("cron: %s", result)
+    return Response(result)
