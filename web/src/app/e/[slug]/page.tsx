@@ -3,11 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Cover } from "@/components/EventCard";
+import { EventGrid } from "@/components/EventCard";
+import { FollowButton } from "@/components/growth/FollowButton";
+import { RefTracker } from "@/components/growth/RefTracker";
+import { Reviews } from "@/components/growth/Reviews";
 import { TicketSelector } from "@/components/TicketSelector";
 import { Badge } from "@/components/ui";
 import { ApiError, apiFetch } from "@/lib/api";
 import { eventDate, REGIONS, timeOnly } from "@/lib/format";
-import type { EventDetail } from "@/lib/types";
+import type { EventCardData, EventDetail } from "@/lib/types";
+import { Suspense } from "react";
 
 async function getEvent(slug: string): Promise<EventDetail> {
   try {
@@ -34,6 +39,8 @@ const REFUND: Record<string, string> = {
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const ev = await getEvent((await params).slug);
+  const similar = await apiFetch<EventCardData[]>(`/events/${ev.slug}/similar/`, { revalidate: 300 }).catch(() => []);
+  const started = new Date(ev.start_at).getTime() <= Date.now();
   const v = ev.venue;
   const mapsUrl = v
     ? v.latitude && v.longitude
@@ -44,6 +51,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   return (
     <main>
+      <Suspense fallback={null}><RefTracker slug={ev.slug} /></Suspense>
       <div className="relative h-56 overflow-hidden bg-zinc-900 sm:h-80">
         <div className="absolute inset-0 opacity-90"><Cover src={ev.cover_image} title={ev.title} /></div>
       </div>
@@ -115,13 +123,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               {ev.organizer.name} {ev.organizer.is_verified && <span title="Verified organizer" className="text-brand">✓</span>}
             </Link>
             {ev.organizer_description && <p className="mt-2 line-clamp-3 text-sm text-zinc-600">{ev.organizer_description}</p>}
+            <div className="mt-3"><FollowButton slug={ev.organizer.slug} /></div>
           </section>
+          <Reviews slug={ev.slug} eventStarted={started} />
         </article>
 
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <TicketSelector event={ev} />
         </aside>
       </div>
+      {similar.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pb-8">
+          <h2 className="mb-4 text-xl font-bold">You may also like</h2>
+          <EventGrid events={similar.slice(0, 3)} />
+        </section>
+      )}
     </main>
   );
 }

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "apps.tickets",
     "apps.notifications",
     "apps.checkin",
+    "apps.growth",
 ]
 
 MIDDLEWARE = [
@@ -233,6 +234,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=f"{PLATFORM_NAME} <no-rep
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=15)
 # For EMAIL_BACKEND=apps.core.email_backends.BrevoAPIBackend (works where SMTP is blocked)
 BREVO_API_KEY = env("BREVO_API_KEY", default="")
+# Marketing emails per day across all organizers (Brevo free plan: 300/day incl. ticket emails).
+CAMPAIGN_DAILY_LIMIT = env.int("CAMPAIGN_DAILY_LIMIT", default=200)
 if not EMAIL_BACKEND.endswith("console.EmailBackend"):
     EMAIL_HOST = env("EMAIL_HOST", default="")
     EMAIL_PORT = env.int("EMAIL_PORT", default=587)
@@ -274,6 +277,7 @@ LOGGING = {
 CELERY_BEAT_SCHEDULE = {
     "expire-unpaid-orders": {"task": "apps.orders.tasks.expire_orders", "schedule": 60.0},
     "event-reminders": {"task": "apps.notifications.tasks.send_reminders", "schedule": 3600.0},
+    "growth-jobs": {"task": "apps.growth.tasks.run_growth_jobs", "schedule": 600.0},
 }
 
 if TESTING:

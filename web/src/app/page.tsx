@@ -11,13 +11,15 @@ export const revalidate = 60;
 async function load() {
   const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
   const empty: Paginated<EventCardData> = { count: 0, next: null, previous: null, results: [] };
-  const [featured, weekend, upcoming, categories] = await Promise.all([
+  const [featured, weekend, upcoming, categories, trending] = await Promise.all([
     safe(apiFetch<Paginated<EventCardData>>("/events/?featured=true", { revalidate: 60 }), empty),
     safe(apiFetch<Paginated<EventCardData>>("/events/?when=this_weekend", { revalidate: 60 }), empty),
     safe(apiFetch<Paginated<EventCardData>>("/events/", { revalidate: 60 }), empty),
     safe(apiFetch<Category[]>("/categories/", { revalidate: 3600 }), []),
+    safe(apiFetch<Paginated<EventCardData>>("/events/?sort=trending", { revalidate: 60 }), empty),
   ]);
-  return { featured: featured.results, weekend: weekend.results, upcoming: upcoming.results, categories };
+  return { featured: featured.results, weekend: weekend.results, upcoming: upcoming.results, categories,
+    trending: trending.results };
 }
 
 const CITIES = [
@@ -27,7 +29,7 @@ const CITIES = [
 ];
 
 export default async function Home() {
-  const { featured, weekend, upcoming, categories } = await load();
+  const { featured, weekend, upcoming, categories, trending } = await load();
   return (
     <main>
       <section className="bg-gradient-to-br from-brand-dark via-brand to-emerald-600 text-white">
@@ -65,6 +67,9 @@ export default async function Home() {
 
         {featured.length > 0 && (
           <Section title="Featured events" href="/events?featured=true"><EventGrid events={featured.slice(0, 6)} /></Section>
+        )}
+        {trending.length > 0 && (
+          <Section title="🔥 Trending this week" href="/events?sort=trending"><EventGrid events={trending.slice(0, 3)} /></Section>
         )}
         {weekend.length > 0 && (
           <Section title="This weekend" href="/events?when=this_weekend"><EventGrid events={weekend.slice(0, 6)} /></Section>

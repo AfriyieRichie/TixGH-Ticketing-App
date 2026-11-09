@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { ApiError, apiFetch } from "@/lib/api";
+import { storedRef } from "@/components/growth/RefTracker";
 import { rememberOrder, useAuth } from "@/lib/auth";
 import { cedis, eventDate } from "@/lib/format";
 import type { EventDetail, Order, Pricing, PublicTicketType } from "@/lib/types";
@@ -27,7 +28,7 @@ export function TicketSelector({ event }: { event: EventDetail }) {
   const [promoError, setPromoError] = useState("");
   const [step, setStep] = useState<"select" | "details">("select");
   const [buyer, setBuyer] = useState({ full_name: "", phone: "", email: "", organization: "", job_title: "",
-    share_contact: event.badge_contact_default });
+    share_contact: event.badge_contact_default, marketing_opt_in: false });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -85,6 +86,7 @@ export function TicketSelector({ event }: { event: EventDetail }) {
           event: event.slug,
           items: lines.map((l) => ({ ticket_type: l.t.id, quantity: l.n })),
           promo_code: promo?.code ?? "",
+          ref: storedRef(event.slug),
           buyer,
         },
       });
@@ -174,6 +176,11 @@ export function TicketSelector({ event }: { event: EventDetail }) {
               </label>
             </div>
           )}
+          <label className="flex items-start gap-2 text-sm text-zinc-700">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand" checked={buyer.marketing_opt_in}
+              onChange={(e) => setBuyer({ ...buyer, marketing_opt_in: e.target.checked })} />
+            <span>Email me about future events from {event.organizer.name}</span>
+          </label>
           <Summary subtotal={subtotal} fees={fees} total={total} lines={lines.map((l) => `${l.n} × ${l.t.name}`)} />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" className="w-full" size="lg" loading={busy}>

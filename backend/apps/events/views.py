@@ -1,7 +1,7 @@
 from datetime import datetime, time, timedelta
 
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -14,6 +14,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.core.dispatch import dispatch
+from apps.growth.services import notify_followers_of_new_event
 from apps.notifications.tasks import deliver_cancellation
 from apps.organizations.models import Perm
 from apps.organizations.permissions import OrgScopedMixin
@@ -108,8 +109,11 @@ class EventViewSet(_EventsPermMixin, viewsets.ModelViewSet):
         if problems := event.publish_problems():
             raise ValidationError({"detail": "This event isn't ready to publish.", "problems": problems})
         event.status = EventStatus.PUBLISHED
+        first_publish = event.published_at is None
         event.published_at = event.published_at or timezone.now()
         event.save(update_fields=["status", "published_at", "updated_at"])
+        if first_publish:
+            notify_followers_of_new_event(event)
         return self._respond(event)
 
     @extend_schema(request=None)
@@ -284,7 +288,7 @@ _LIST_PARAMS = [
     OpenApiParameter("price", str, enum=["free", "paid"]),
     OpenApiParameter("format", str, enum=["in_person", "online", "hybrid"]),
     OpenApiParameter("featured", bool),
-    OpenApiParameter("sort", str, enum=["date", "newest"]),
+    OpenApiParameter("sort", str, enum=["date", "newest", "trending"]),
 ]
 
 
@@ -361,11 +365,26 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
         qs = qs.distinct()
         if p.get("sort") == "newest":
             return qs.order_by("-published_at")
+        if p.get("sort") == "trending":
+            week = timezone.now() - timedelta(days=7)
+            return qs.annotate(
+                recent_sales=Count("orders", filter=Q(orders__status="paid", orders__paid_at__gte=week), distinct=True)
+            ).order_by("-recent_sales", "start_at")
         return qs.order_by("start_at")
 
     @extend_schema(parameters=_LIST_PARAMS)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(responses=s.PublicEventListSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def similar(self, request, slug=None):
+        """Up to 6 upcoming events in the same category or by the same organizer."""
+        event = self.get_object()
+        qs = self._base(Event.objects.listed()).exclude(pk=event.pk).filter(
+            Q(category_id=event.category_id) | Q(organization_id=event.organization_id)
+        ).order_by("start_at")[:6]
+        return Response(s.PublicEventListSerializer(qs, many=True, context=self.get_serializer_context()).data)
 
     @extend_schema(request=s.PromoCheckSerializer, responses=OpenApiTypes.OBJECT)
     @action(detail=True, methods=["post"], url_path="promo-check")

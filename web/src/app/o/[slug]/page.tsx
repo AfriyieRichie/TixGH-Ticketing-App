@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { EventGrid } from "@/components/EventCard";
+import { FollowButton } from "@/components/growth/FollowButton";
+import { Stars } from "@/components/growth/Reviews";
 import { Empty } from "@/components/ui";
 import { ApiError, apiFetch, mediaUrl } from "@/lib/api";
 import { REGIONS } from "@/lib/format";
@@ -10,6 +12,7 @@ import type { EventCardData, Paginated } from "@/lib/types";
 type PublicOrg = {
   name: string; slug: string; description: string; logo: string | null; website: string;
   instagram: string; x_handle: string; facebook: string; tiktok: string; region: string; city: string; is_verified: boolean;
+  followers: number; rating: { average: number | null; count: number };
 };
 
 async function getOrg(slug: string) {
@@ -52,6 +55,10 @@ export default async function OrganizerPage({ params }: { params: Promise<{ slug
             {org.name} {org.is_verified && <span className="text-brand" title="Verified organizer">✓</span>}
           </h1>
           <p className="text-zinc-600">{[org.city, REGIONS[org.region]].filter(Boolean).join(", ")}</p>
+          {org.rating.average && (
+            <p className="mt-1 flex items-center gap-1 text-sm"><Stars value={org.rating.average} /> {org.rating.average} from {org.rating.count} review{org.rating.count === 1 ? "" : "s"}</p>
+          )}
+          <div className="mt-3"><FollowButton slug={org.slug} /></div>
           <div className="mt-2 flex flex-wrap gap-3 text-sm">
             {socials.map((s) => <a key={s.label} href={s.href} target="_blank" rel="noreferrer" className="font-semibold text-brand hover:underline">{s.label}</a>)}
           </div>

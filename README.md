@@ -64,7 +64,7 @@ the Owner, Admin or Gate scanner role.
 4. **Ticket delivery** ✅ signed QR codes, SMS and email with PDF, no-app ticket pages, WhatsApp share, wallet, transfers, reminders, cancellation notices
 5. **Web app** ✅ home, search, event pages, checkout, login, my tickets, organizer dashboard (events, tickets, promo codes, sales, attendees + CSV, payouts, team)
 6. **Mobile app** ✅ one Expo app: events, offline ticket wallet, and a gate scanner (offline-capable, multi-gate sync, forged/duplicate detection)
-7. Growth: discovery, affiliates, campaigns, reviews
+7. **Growth** ✅ follow organizers (auto email on new events), promoter tracking links with commission, opt-in email campaigns with unsubscribe and daily limits, reviews with organizer replies, trending and similar events
 8. Subscriptions and add-ons, refunds and resale, production deployment
 
 ## Business model
@@ -173,3 +173,19 @@ hourly event reminders (24 h before), and cancellation notices. Every SMS and em
 **Badges** (per event): registration collects organization and job title plus an opt-out contact-sharing choice;
 phones admit at the door and the dashboard's **Check-in desk** prints stickers (vCard QR) on a label printer.
 **Wristbands**: a colour per ticket type, shown on the scanner at ADMIT.
+
+## API overview (Phase 7: growth)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET/POST/DELETE organizations/public/{slug}/follow/` | Follow status / follow / unfollow |
+| `GET me/following/` | Organizers I follow |
+| `POST events/{slug}/ref/{code}/` | Count a visit through a promoter link |
+| `GET/POST events/{slug}/reviews/` | Reviews and average; write/update mine (ticket holders, after start) |
+| `GET events/{slug}/similar/`, `GET events/?sort=trending` | Discovery |
+| `organizations/{org}/events/{slug}/tracking-links/` | Promoter links with clicks, orders, earnings, commission |
+| `POST organizations/{org}/events/{slug}/reviews/{id}/reply/` | Organizer reply |
+| `GET organizations/{org}/audience/`, `organizations/{org}/campaigns/` (+ `send/`) | Audience and email campaigns (verified organizers) |
+| `/u/{token}/` | Unsubscribe page linked from every campaign email |
+
+Campaign emails are drained by the scheduled job within `CAMPAIGN_DAILY_LIMIT` (default 200/day, to fit Brevo's free plan).

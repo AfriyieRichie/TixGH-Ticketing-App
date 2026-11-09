@@ -1,0 +1,11 @@
+{% if name %}Hi {{ name }},
+
+{% endif %}{% for p in paragraphs %}{{ p }}
+
+{% endfor %}{% if event %}{{ event.title }}
+{{ when }}
+{{ where }}
+Get tickets: {{ event_url }}
+
+{% endif %}--
+Sent by {{ org.name }} through {{ platform }}. Unsubscribe: {{ unsubscribe_url }}

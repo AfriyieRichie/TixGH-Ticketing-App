@@ -10,7 +10,7 @@ import type { Category, EventCardData, Paginated } from "@/lib/types";
 export const metadata = { title: "Find events" };
 
 type SP = Record<string, string | undefined>;
-const FILTER_KEYS = ["q", "category", "region", "city", "when", "price", "format", "featured", "organizer", "page"];
+const FILTER_KEYS = ["q", "category", "region", "city", "when", "price", "format", "featured", "organizer", "sort", "page"];
 
 const WHEN = [
   ["", "Any date"], ["today", "Today"], ["tomorrow", "Tomorrow"], ["this_weekend", "This weekend"],

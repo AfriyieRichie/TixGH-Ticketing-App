@@ -21,6 +21,8 @@ class BuyerSerializer(serializers.Serializer):
     job_title = serializers.CharField(max_length=120, required=False, allow_blank=True)
     share_contact = serializers.BooleanField(required=False, default=False,
                                              help_text="Put my contact on my badge QR so people I meet can save it")
+    marketing_opt_in = serializers.BooleanField(required=False, default=False,
+                                                help_text="Tell me about this organizer's future events")
 
     def validate_phone(self, value):
         if not value:
@@ -35,6 +37,7 @@ class CheckoutSerializer(serializers.Serializer):
     event = serializers.SlugField(help_text="Event slug")
     items = CheckoutItemSerializer(many=True, allow_empty=False)
     promo_code = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    ref = serializers.CharField(max_length=40, required=False, allow_blank=True, help_text="Tracking link code (?ref=)")
     buyer = BuyerSerializer(required=False)
 
     def validate(self, attrs):

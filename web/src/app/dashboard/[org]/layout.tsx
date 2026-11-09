@@ -36,6 +36,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const nav = [
     { href: base, label: "Overview", show: can("manage_events") || can("view_finance") },
     { href: `${base}/events`, label: "Events", show: true },
+    { href: `${base}/marketing`, label: "Marketing", show: can("manage_events") },
     { href: `${base}/settings`, label: "Settings", show: true },
   ].filter((n) => n.show);
   const active = (href: string) => (href === base ? path === base : path.startsWith(href));

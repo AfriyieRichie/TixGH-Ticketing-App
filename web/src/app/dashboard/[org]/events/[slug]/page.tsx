@@ -9,6 +9,8 @@ import { EventForm } from "@/components/dashboard/EventForm";
 import { EventStats } from "@/components/dashboard/EventStats";
 import { statusBadge, useOrg } from "@/components/dashboard/org";
 import { PromoCodes } from "@/components/dashboard/PromoCodes";
+import { ReviewsManager } from "@/components/dashboard/ReviewsManager";
+import { TrackingLinks } from "@/components/dashboard/TrackingLinks";
 import { TicketTypes } from "@/components/dashboard/TicketTypes";
 import { Alert, Button, Field, PageLoader, Textarea } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -34,7 +36,7 @@ function ManageEvent() {
   const finance = can("view_finance") || editable;
 
   const tabs = [
-    ["overview", "Overview"], ...(editable ? [["details", "Details"], ["tickets", "Tickets"], ["promo", "Promo codes"]] : []),
+    ["overview", "Overview"], ...(editable ? [["details", "Details"], ["tickets", "Tickets"], ["promo", "Promo codes"], ["promote", "Promote"], ["reviews", "Reviews"]] : []),
     ...(finance ? [["attendees", "Attendees"]] : []),
   ] as [string, string][];
   const tab = params.get("tab") ?? "overview";
@@ -131,6 +133,8 @@ function ManageEvent() {
         {tab === "details" && editable && <EventForm event={ev} onSaved={setEv} />}
         {tab === "tickets" && editable && <TicketTypes event={ev} onChange={load} />}
         {tab === "promo" && editable && <PromoCodes event={ev} />}
+        {tab === "promote" && editable && <TrackingLinks event={ev} />}
+        {tab === "reviews" && editable && <ReviewsManager event={ev} />}
         {tab === "attendees" && finance && <Attendees event={ev} />}
       </div>
     </div>

@@ -55,7 +55,8 @@ def _promo_pending_uses(promo: PromoCode) -> int:
     ).count()
 
 
-def create_order(*, event: Event, items: list[dict], buyer: dict, user=None, promo_code: str = "") -> Order:
+def create_order(*, event: Event, items: list[dict], buyer: dict, user=None, promo_code: str = "",
+                 ref: str = "") -> Order:
     """
     Reserve tickets and create a pending order. Free orders are completed
     immediately. `items` = [{"ticket_type": id, "quantity": n}, ...].
@@ -138,6 +139,8 @@ def create_order(*, event: Event, items: list[dict], buyer: dict, user=None, pro
             buyer_job_title=(buyer.get("job_title") or "").strip(),
             share_contact=bool(buyer.get("share_contact")) and event.badges_enabled,
             promo_code=promo,
+            marketing_opt_in=bool(buyer.get("marketing_opt_in")),
+            tracking_link=event.tracking_links.filter(code__iexact=ref.strip(), is_active=True).first() if ref else None,
             fee_bearer=event.effective_fee_bearer,
             subtotal=subtotal,
             discount_total=list_total - subtotal,

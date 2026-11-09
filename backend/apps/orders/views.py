@@ -66,7 +66,7 @@ class CheckoutView(APIView):
         try:
             order = create_order(
                 event=event, items=data["items"], buyer=data["buyer"],
-                user=request.user, promo_code=data.get("promo_code", ""),
+                user=request.user, promo_code=data.get("promo_code", ""), ref=data.get("ref", ""),
             )
         except CheckoutError as exc:
             raise ValidationError({exc.field: [exc.message]})

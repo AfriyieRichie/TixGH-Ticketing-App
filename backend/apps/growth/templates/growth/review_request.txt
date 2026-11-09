@@ -1,0 +1,3 @@
+Hi {{ order.buyer_name }},
+
+How was {{ event.title }}? Rate it here: {{ review_url }}

@@ -51,6 +51,11 @@ class Order(models.Model):
     buyer_organization = models.CharField(max_length=120, blank=True)
     buyer_job_title = models.CharField(max_length=120, blank=True)
     share_contact = models.BooleanField(default=False, help_text="Agreed to put contact details on badge QR")
+    marketing_opt_in = models.BooleanField(default=False, help_text="Agreed to hear about this organizer's future events")
+    tracking_link = models.ForeignKey(
+        "growth.TrackingLink", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders"
+    )
+    review_requested_at = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(max_length=15, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     promo_code = models.ForeignKey(PromoCode, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")

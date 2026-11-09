@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, inline_serializer
 
+from apps.growth.services import process_campaigns, send_review_requests
 from apps.notifications.services import send_due_reminders
 from apps.orders.services import expire_stale_orders
 
@@ -63,6 +64,11 @@ def cron(request):
     given = request.headers.get("X-Cron-Secret", "")
     if not secret or not hmac.compare_digest(given, secret):
         raise Http404
-    result = {"expired_orders": expire_stale_orders(), "reminders_sent": send_due_reminders()}
+    result = {
+        "expired_orders": expire_stale_orders(),
+        "reminders_sent": send_due_reminders(),
+        "campaign_emails": process_campaigns(),
+        "review_requests": send_review_requests(),
+    }
     logger.info("cron: %s", result)
     return Response(result)

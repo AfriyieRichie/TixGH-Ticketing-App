@@ -23,5 +23,6 @@ urlpatterns = [
     ),
     path("<slug:org_slug>/", include(payouts.urls)),
     path("<slug:org_slug>/", include("apps.events.org_urls")),
+    path("<slug:org_slug>/", include("apps.growth.org_urls")),
     path("", include(router.urls)),
 ]

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.accounts.serializers import ContactField
+from apps.growth.models import Review
+from apps.growth.services import rating_summary
 from apps.core.phone import InvalidPhoneNumber, normalize_phone
 
 from .models import Invitation, Membership, Organization, PayoutAccount, PayoutMethod
@@ -53,14 +55,22 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 class PublicOrganizationSerializer(serializers.ModelSerializer):
     is_verified = serializers.BooleanField(read_only=True)
+    followers = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = [
             "name", "slug", "description", "logo", "website",
             "instagram", "x_handle", "facebook", "tiktok",
-            "region", "city", "is_verified",
+            "region", "city", "is_verified", "followers", "rating",
         ]
+
+    def get_followers(self, obj) -> int:
+        return obj.followers.count()
+
+    def get_rating(self, obj) -> dict:
+        return rating_summary(Review.objects.filter(event__organization=obj))
 
 
 class MemberUserSerializer(serializers.ModelSerializer):
