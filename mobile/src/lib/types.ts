@@ -49,7 +49,7 @@ export type ScanEvent = {
   stats: Stats;
 };
 
-export type Stats = { tickets: number; checked_in: number; people: number; people_in: number };
+export type Stats = { tickets: number; checked_in: number; people: number; people_in: number; people_arrived?: number };
 
 export type ManifestTicket = {
   id: number;
@@ -59,13 +59,24 @@ export type ManifestTicket = {
   name: string;
   status: "valid" | "checked_in" | "void";
   checked_in_at: string | null;
+  admitted: number;
+  inside: number;
+  reentries: number;
 };
 
-export type ScanResultKind = "ok" | "duplicate" | "invalid" | "transferred" | "void" | "wrong_event" | "event_cancelled";
+export type ScanResultKind =
+  | "ok" | "reentry" | "exit" | "duplicate" | "no_reentry" | "not_inside"
+  | "invalid" | "transferred" | "void" | "wrong_event" | "event_cancelled";
+
+export type Direction = "in" | "out";
+
+export type ReentryPolicy = { reentry_allowed: boolean; max_reentries: number | null; reentry_cutoff_at: string | null };
 
 export type ScanResponse = {
   result: ScanResultKind;
   message: string;
+  direction?: Direction;
+  people?: number;
   scanned_at: string;
   ticket: ManifestTicket | null;
   previous?: { at: string; gate: string };

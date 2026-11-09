@@ -76,8 +76,8 @@ export default function TicketsScreen() {
               <Text style={s.muted}>{t.event.when}</Text>
               <Text style={s.muted}>{t.ticket_type_name}{t.attendee_name ? ` · ${t.attendee_name}` : ""}</Text>
             </View>
-            <Text style={[s.badge, t.status === "checked_in" && { color: C.warning }]}>
-              {t.status === "checked_in" ? "Used" : t.event.status === "cancelled" ? "Cancelled" : "Show QR"}
+            <Text style={[s.badge, !t.qr_payload && { color: C.warning }]}>
+              {t.event.status === "cancelled" ? "Cancelled" : t.qr_payload ? "Show QR" : "Used"}
             </Text>
           </Pressable>
         )}

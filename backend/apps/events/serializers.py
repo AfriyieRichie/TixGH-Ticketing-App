@@ -148,7 +148,8 @@ class EventSerializer(serializers.ModelSerializer):
             "id", "slug", "title", "summary", "description", "category", "cover_image",
             "format", "venue", "venue_detail", "online_url", "start_at", "end_at",
             "status", "visibility", "age_restriction", "max_tickets_per_order",
-            "fee_bearer", "effective_fee_bearer", "allow_transfers", "refund_policy", "refund_policy_details",
+            "fee_bearer", "effective_fee_bearer", "allow_transfers", "reentry_allowed", "max_reentries",
+            "reentry_cutoff_at", "refund_policy", "refund_policy_details",
             "is_featured", "published_at", "cancelled_at", "cancellation_reason",
             "ticket_types", "tickets_sold", "has_ended", "publish_problems",
             "created_at", "updated_at",
@@ -267,6 +268,7 @@ class PublicEventDetailSerializer(PublicEventListSerializer):
     class Meta(PublicEventListSerializer.Meta):
         fields = PublicEventListSerializer.Meta.fields + [
             "description", "ticket_types", "age_restriction", "max_tickets_per_order", "allow_transfers",
+            "reentry_allowed", "max_reentries", "reentry_cutoff_at",
             "refund_policy", "refund_policy_details", "has_ended", "cancellation_reason",
             "organizer_description",
         ]

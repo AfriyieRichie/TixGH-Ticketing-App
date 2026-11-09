@@ -78,7 +78,7 @@ class TicketSerializer(serializers.ModelSerializer):
     transferred = serializers.SerializerMethodField(help_text="Sent to someone else; the QR now belongs to them")
 
     def get_qr_payload(self, obj) -> str | None:
-        return obj.qr_payload if obj.status == TicketStatus.VALID and not obj.transferred_at else None
+        return obj.qr_payload if obj.qr_active and not obj.transferred_at else None
 
     def get_transferred(self, obj) -> bool:
         return obj.transferred_at is not None

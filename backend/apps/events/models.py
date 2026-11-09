@@ -121,6 +121,12 @@ class Event(TimeStampedModel):
         help_text="Blank = organizer's default, then platform default",
     )
     allow_transfers = models.BooleanField(default=True, help_text="Ticket holders may send tickets to someone else")
+    # Re-entry: when allowed, gate staff scan people out and back in.
+    reentry_allowed = models.BooleanField(default=False, help_text="Attendees may leave and come back in")
+    max_reentries = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="Re-entries allowed per ticket. Blank = unlimited"
+    )
+    reentry_cutoff_at = models.DateTimeField(null=True, blank=True, help_text="No re-entry after this time")
     refund_policy = models.CharField(max_length=10, choices=RefundPolicy.choices, default=RefundPolicy.NO_REFUNDS)
     refund_policy_details = models.TextField(blank=True)
 

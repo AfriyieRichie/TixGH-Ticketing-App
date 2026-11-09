@@ -14,6 +14,7 @@ type Form = {
   title: string; summary: string; description: string; category: string; format: OrgEvent["format"];
   venue: string; online_url: string; start_at: string; end_at: string; visibility: OrgEvent["visibility"];
   age_restriction: string; max_tickets_per_order: string; fee_bearer: string; allow_transfers: boolean;
+  reentry_allowed: boolean; max_reentries: string; reentry_cutoff_at: string;
   refund_policy: string; refund_policy_details: string;
 };
 
@@ -24,7 +25,10 @@ function initial(ev?: OrgEvent): Form {
     online_url: ev?.online_url ?? "", start_at: toLocalInput(ev?.start_at), end_at: toLocalInput(ev?.end_at),
     visibility: ev?.visibility ?? "public", age_restriction: String(ev?.age_restriction ?? 0),
     max_tickets_per_order: String(ev?.max_tickets_per_order ?? 10), fee_bearer: ev?.fee_bearer ?? "",
-    allow_transfers: ev?.allow_transfers ?? true, refund_policy: ev?.refund_policy ?? "no_refunds",
+    allow_transfers: ev?.allow_transfers ?? true,
+    reentry_allowed: ev?.reentry_allowed ?? false,
+    max_reentries: ev?.max_reentries != null ? String(ev.max_reentries) : "",
+    reentry_cutoff_at: toLocalInput(ev?.reentry_cutoff_at), refund_policy: ev?.refund_policy ?? "no_refunds",
     refund_policy_details: ev?.refund_policy_details ?? "",
   };
 }
@@ -67,6 +71,8 @@ export function EventForm({ event, onSaved }: { event?: OrgEvent; onSaved: (ev: 
         end_at: fromLocalInput(f.end_at),
         age_restriction: Number(f.age_restriction),
         max_tickets_per_order: Number(f.max_tickets_per_order),
+        max_reentries: f.reentry_allowed && f.max_reentries ? Number(f.max_reentries) : null,
+        reentry_cutoff_at: f.reentry_allowed ? fromLocalInput(f.reentry_cutoff_at) : null,
       };
       const path = event ? `/organizations/${org.slug}/events/${event.slug}/` : `/organizations/${org.slug}/events/`;
       let ev = await request<OrgEvent>(path, { method: event ? "PATCH" : "POST", body });
@@ -175,6 +181,28 @@ export function EventForm({ event, onSaved }: { event?: OrgEvent; onSaved: (ev: 
             Let buyers send tickets to friends
           </label>
         </div>
+      </Section>
+
+      <Section title="Gate and re-entry">
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={f.reentry_allowed} onChange={(e) => set("reentry_allowed", e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand" />
+          <span>
+            <span className="font-medium">Allow re-entry</span>
+            <span className="block text-zinc-500">Gate staff scan people out when they leave and back in when they return.
+              A ticket can only be inside once, so screenshots shared with friends don&apos;t work.</span>
+          </span>
+        </label>
+        {f.reentry_allowed && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Max re-entries per ticket" hint="Blank = unlimited">
+              <Input type="number" min={1} max={50} value={f.max_reentries} onChange={(e) => set("max_reentries", e.target.value)} />
+            </Field>
+            <Field label="No re-entry after" hint="Optional, e.g. 10:00 PM">
+              <Input type="datetime-local" value={f.reentry_cutoff_at} onChange={(e) => set("reentry_cutoff_at", e.target.value)} />
+            </Field>
+          </div>
+        )}
       </Section>
 
       {error && <Alert>{error}</Alert>}

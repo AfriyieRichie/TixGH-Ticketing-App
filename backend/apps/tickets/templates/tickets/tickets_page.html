@@ -32,6 +32,7 @@ h1{font-size:22px;margin:4px 0}.meta{color:var(--muted);margin:0 0 16px;line-hei
     {% if item.qr %}
       <div class="qr">{{ item.qr|safe }}</div>
       <div class="code">{{ t.code }}</div>
+      {% if t.status == "checked_in" %}<span class="badge used">Checked in · re-entry allowed</span>{% endif %}
     {% elif t.transferred_at and order %}
       <span class="badge sent">Sent to {{ t.attendee_name }}</span>
     {% elif t.status == "checked_in" %}

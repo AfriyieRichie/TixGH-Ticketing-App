@@ -13,6 +13,15 @@ class ScanResult(models.TextChoices):
     VOID = "void", "Ticket voided or refunded"
     WRONG_EVENT = "wrong_event", "Ticket is for another event"
     EVENT_CANCELLED = "event_cancelled", "Event cancelled"
+    REENTRY = "reentry", "Re-entry"
+    NO_REENTRY = "no_reentry", "Re-entry not allowed"
+    EXIT = "exit", "Exit"
+    NOT_INSIDE = "not_inside", "Not inside"
+
+
+class Direction(models.TextChoices):
+    IN = "in", "Entry"
+    OUT = "out", "Exit"
 
 
 class CheckIn(models.Model):
@@ -22,6 +31,12 @@ class CheckIn(models.Model):
     ticket = models.ForeignKey(Ticket, null=True, blank=True, on_delete=models.SET_NULL, related_name="scans")
     raw = models.CharField(max_length=120, help_text="What was scanned or typed")
     result = models.CharField(max_length=20, choices=ScanResult.choices)
+    direction = models.CharField(max_length=3, choices=Direction.choices, default=Direction.IN)
+    people = models.PositiveSmallIntegerField(default=0, help_text="People moved through the gate by this scan")
+    # What this scan changed on the ticket, so it can be undone exactly.
+    delta_admitted = models.SmallIntegerField(default=0)
+    delta_inside = models.SmallIntegerField(default=0)
+    delta_reentries = models.SmallIntegerField(default=0)
     scanned_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
     gate = models.CharField(max_length=40, blank=True)
     device_id = models.CharField(max_length=64, blank=True)

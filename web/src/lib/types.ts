@@ -60,6 +60,9 @@ export type EventDetail = Omit<EventCardData, "venue"> & {
   age_restriction: number;
   max_tickets_per_order: number;
   allow_transfers: boolean;
+  reentry_allowed: boolean;
+  max_reentries: number | null;
+  reentry_cutoff_at: string | null;
   refund_policy: string;
   refund_policy_details: string;
   has_ended: boolean;
@@ -198,6 +201,9 @@ export type OrgEvent = {
   fee_bearer: string;
   effective_fee_bearer: string;
   allow_transfers: boolean;
+  reentry_allowed: boolean;
+  max_reentries: number | null;
+  reentry_cutoff_at: string | null;
   refund_policy: string;
   refund_policy_details: string;
   is_featured: boolean;

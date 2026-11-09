@@ -101,6 +101,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <li>{REFUND[ev.refund_policy] ?? ev.refund_policy}. {ev.refund_policy_details}</li>
               <li>Tickets arrive by SMS{" "}and email with a QR code. No app needed.</li>
               {ev.allow_transfers && <li>You can send a ticket to a friend from &ldquo;My tickets&rdquo;.</li>}
+              <li>
+                {ev.reentry_allowed
+                  ? `Re-entry allowed: get scanned out at the gate when you leave${ev.max_reentries ? ` (up to ${ev.max_reentries} time${ev.max_reentries > 1 ? "s" : ""})` : ""}${ev.reentry_cutoff_at ? `, until ${timeOnly(ev.reentry_cutoff_at)}` : ""}.`
+                  : "No re-entry: once you leave, your ticket can't be used again."}
+              </li>
               {ev.age_restriction > 0 && <li>Only for ages {ev.age_restriction} and over.</li>}
             </ul>
           </section>

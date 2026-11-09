@@ -8,16 +8,20 @@ import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from "reac
 import { Button, Loading } from "@/components/ui";
 import { C } from "@/constants/theme";
 import { timeOnly } from "@/lib/format";
+import type { Direction } from "@/lib/types";
 import { getGate, setGate as saveGate, useScanner, type ScanOutcome } from "@/lib/scanner";
 
 const COLORS: Record<string, string> = {
-  ok: "#16A34A", duplicate: "#D97706", invalid: "#DC2626", transferred: "#DC2626",
-  void: "#DC2626", wrong_event: "#DC2626", event_cancelled: "#DC2626",
+  ok: "#16A34A", reentry: "#16A34A", exit: "#2563EB", duplicate: "#D97706", not_inside: "#D97706",
+  no_reentry: "#DC2626", invalid: "#DC2626", transferred: "#DC2626", void: "#DC2626",
+  wrong_event: "#DC2626", event_cancelled: "#DC2626",
 };
 const HEADLINE: Record<string, string> = {
-  ok: "ADMIT", duplicate: "ALREADY USED", invalid: "INVALID", transferred: "OLD TICKET",
-  void: "VOID", wrong_event: "WRONG EVENT", event_cancelled: "CANCELLED",
+  ok: "ADMIT", reentry: "WELCOME BACK", exit: "EXIT", duplicate: "ALREADY INSIDE", not_inside: "NOT INSIDE",
+  no_reentry: "NO RE-ENTRY", invalid: "INVALID", transferred: "OLD TICKET", void: "VOID",
+  wrong_event: "WRONG EVENT", event_cancelled: "CANCELLED",
 };
+const GOOD = ["ok", "reentry", "exit"];
 
 export default function ScannerScreen() {
   useKeepAwake(); // screen stays on at the gate
@@ -31,28 +35,44 @@ export default function ScannerScreen() {
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
   const [editingGate, setEditingGate] = useState(false);
+  const [direction, setDirection] = useState<Direction>("in");
+  const [picker, setPicker] = useState<{ raw: string; max: number; count: number; label: string } | null>(null);
   const last = useRef<{ data: string; at: number }>({ data: "", at: 0 });
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { getGate().then(setGate); }, []);
 
-  async function handle(raw: string) {
+  function handle(raw: string) {
     const now = Date.now();
-    // Ignore the same QR held in front of the camera, and scans while a result is showing.
-    if (busy || result || (raw === last.current.data && now - last.current.at < 3000)) return;
+    // Ignore the same QR held in front of the camera, and scans while a result or picker is showing.
+    if (busy || result || picker || (raw === last.current.data && now - last.current.at < 3000)) return;
     last.current = { data: raw, at: now };
+    // Group tickets (e.g. a table for 8): ask how many people are going through now.
+    const t = sc.lookup(raw);
+    if (t && t.admits > 1) {
+      const max = direction === "out" ? t.inside : t.admits - t.inside;
+      if (max > 1) {
+        const suggested = direction === "out" ? t.inside : (t.admits - t.admitted) || (t.admitted - t.inside);
+        setPicker({ raw, max, count: suggested, label: `${t.name} · ${t.type} (admits ${t.admits}, ${t.inside} inside)` });
+        return;
+      }
+    }
+    submit(raw);
+  }
+
+  async function submit(raw: string, count?: number) {
     setBusy(true);
     try {
-      const r = await sc.scan(raw, gate);
+      const r = await sc.scan(raw, gate, direction, count);
       setResult(r);
       Haptics.notificationAsync(
-        r.result === "ok" ? Haptics.NotificationFeedbackType.Success
+        GOOD.includes(r.result) ? Haptics.NotificationFeedbackType.Success
           : r.result === "duplicate" ? Haptics.NotificationFeedbackType.Warning
           : Haptics.NotificationFeedbackType.Error,
       );
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       // Admits clear quickly so the queue keeps moving; problems stay until tapped.
-      if (r.result === "ok") dismissTimer.current = setTimeout(() => setResult(null), 2200);
+      if (GOOD.includes(r.result)) dismissTimer.current = setTimeout(() => setResult(null), 2200);
     } catch (e) {
       Alert.alert("Scan failed", e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -93,7 +113,7 @@ export default function ScannerScreen() {
     );
   }
 
-  const pctIn = sc.stats.tickets ? Math.round((sc.stats.checked_in / sc.stats.tickets) * 100) : 0;
+  const arrived = sc.stats.people_arrived ?? sc.stats.people_in;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -102,7 +122,7 @@ export default function ScannerScreen() {
         facing="back"
         enableTorch={torch}
         barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-        onBarcodeScanned={result || busy ? undefined : ({ data }) => handle(data)}
+        onBarcodeScanned={result || busy || picker ? undefined : ({ data }) => handle(data)}
       />
 
       {/* Top bar: event, counts, connection */}
@@ -113,7 +133,8 @@ export default function ScannerScreen() {
           <View style={[s.dot, { backgroundColor: sc.online ? "#22C55E" : "#F59E0B" }]} />
           <Text style={s.topSmall}>{sc.online ? "Online" : "Offline"}</Text>
         </View>
-        <Text style={s.count}>{sc.stats.checked_in} / {sc.stats.tickets} in <Text style={s.topSmall}>({pctIn}%, {sc.stats.people_in} people)</Text></Text>
+        <Text style={s.count}>{sc.stats.people_in} inside <Text style={s.topSmall}>· {arrived} of {sc.stats.people} arrived · {sc.stats.checked_in}/{sc.stats.tickets} tickets</Text></Text>
+        {sc.eventInfo && !sc.eventInfo.reentry_allowed ? <Text style={s.topSmall}>No re-entry for this event</Text> : null}
         <Text style={s.topSmall}>
           {sc.queued ? `${sc.queued} scan(s) waiting to sync · ` : ""}
           {sc.lastSync ? `Synced ${timeOnly(sc.lastSync.toISOString())}` : "Not synced yet"}
@@ -127,7 +148,16 @@ export default function ScannerScreen() {
         </Pressable>
       ) : null}
 
-      {!result ? <View style={s.frame} pointerEvents="none" /> : null}
+      {!result ? <View style={[s.frame, direction === "out" && { borderColor: "#60A5FA" }]} pointerEvents="none" /> : null}
+
+      <View style={s.modeBar}>
+        {(["in", "out"] as const).map((d) => (
+          <Pressable key={d} onPress={() => setDirection(d)}
+            style={[s.mode, direction === d && { backgroundColor: d === "in" ? C.success : "#2563EB" }]}>
+            <Text style={s.modeText}>{d === "in" ? "⬇ ENTRY" : "⬆ EXIT"}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       {/* Bottom controls */}
       <View style={s.bottom}>
@@ -143,7 +173,9 @@ export default function ScannerScreen() {
           {result.ticket ? (
             <>
               <Text style={s.name}>{result.ticket.name}</Text>
-              <Text style={s.detail}>{result.ticket.type}{result.ticket.admits > 1 ? ` · ADMITS ${result.ticket.admits}` : ""}</Text>
+              <Text style={s.detail}>{result.ticket.type}</Text>
+              {result.ticket.admits > 1 ? <Text style={s.detail}>{result.message} · {result.ticket.inside} of {result.ticket.admits} inside</Text> : null}
+              {result.ticket.admits === 1 && !GOOD.includes(result.result) ? <Text style={s.detail}>{result.message}</Text> : null}
               <Text style={s.code}>{result.ticket.code}</Text>
             </>
           ) : <Text style={s.detail}>{result.message}</Text>}
@@ -152,11 +184,35 @@ export default function ScannerScreen() {
           ) : null}
           {result.offline ? <Text style={s.small}>Checked offline · will sync</Text> : null}
           <Text style={s.small}>Tap anywhere to scan next</Text>
-          {result.result === "ok" && result.ticket && !result.offline ? (
+          {GOOD.includes(result.result) && result.ticket && !result.offline ? (
             <Pressable style={s.undo} onPress={() => undo(result.ticket!.code)}><Text style={{ color: "#fff", fontWeight: "700" }}>Undo</Text></Pressable>
           ) : null}
         </Pressable>
       ) : null}
+
+      {/* How many people on a group ticket */}
+      <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
+        <View style={s.modalBg}>
+          {picker ? (
+            <View style={s.sheet}>
+              <Text style={s.bigDark}>{direction === "out" ? "How many are leaving?" : "How many are entering?"}</Text>
+              <Text style={[s.mutedCenter, { marginTop: 0 }]}>{picker.label}</Text>
+              <View style={s.stepper}>
+                <Pressable style={s.stepBtn} onPress={() => setPicker({ ...picker, count: Math.max(1, picker.count - 1) })}>
+                  <Text style={s.stepText}>−</Text>
+                </Pressable>
+                <Text style={s.stepValue}>{picker.count}</Text>
+                <Pressable style={s.stepBtn} onPress={() => setPicker({ ...picker, count: Math.min(picker.max, picker.count + 1) })}>
+                  <Text style={s.stepText}>+</Text>
+                </Pressable>
+              </View>
+              <Button title={direction === "out" ? `Exit ${picker.count}` : `Admit ${picker.count}`}
+                onPress={() => { const p = picker; setPicker(null); submit(p.raw, p.count); }} />
+              <Button title="Cancel" variant="secondary" style={{ marginTop: 8 }} onPress={() => setPicker(null)} />
+            </View>
+          ) : null}
+        </View>
+      </Modal>
 
       {/* Type a code */}
       <Modal visible={typing} transparent animationType="fade" onRequestClose={() => setTyping(false)}>
@@ -196,6 +252,14 @@ const s = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   alert: { backgroundColor: "#B45309", margin: 12, padding: 12, borderRadius: 12 },
   frame: { position: "absolute", top: "32%", left: "15%", right: "15%", aspectRatio: 1, borderWidth: 3, borderColor: "rgba(255,255,255,0.85)", borderRadius: 24 },
+  modeBar: { position: "absolute", bottom: 104, left: 16, right: 16, flexDirection: "row", gap: 8 },
+  mode: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: "center", backgroundColor: "rgba(0,0,0,0.55)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  modeText: { color: "#fff", fontWeight: "900", fontSize: 16, letterSpacing: 1 },
+  stepper: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginVertical: 20 },
+  stepBtn: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: C.line, alignItems: "center", justifyContent: "center" },
+  stepText: { fontSize: 28, fontWeight: "800", color: C.text },
+  stepValue: { fontSize: 44, fontWeight: "900", color: C.text, minWidth: 60, textAlign: "center" },
   bottom: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", gap: 8, padding: 16, paddingBottom: 34, backgroundColor: "rgba(0,0,0,0.65)" },
   ctrl: { flex: 1, backgroundColor: "rgba(255,255,255,0.15)", paddingVertical: 14, borderRadius: 12, alignItems: "center" },
   ctrlText: { color: "#fff", fontWeight: "700" },

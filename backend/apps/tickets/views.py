@@ -40,7 +40,7 @@ class WalletTicketSerializer(serializers.ModelSerializer):
         read_only_fields = [f for f in fields if f != "attendee_name"]
 
     def get_qr_payload(self, obj) -> str | None:
-        return obj.qr_payload if obj.status == TicketStatus.VALID else None
+        return obj.qr_payload if obj.qr_active else None
 
     def get_event(self, obj) -> dict:
         ev = obj.event
@@ -143,7 +143,7 @@ def _page_context(tickets, event, **extra):
     return {
         "event": event, "when": format_when(event), "where": format_where(event),
         "tickets": [
-            {"t": t, "qr": qr_svg(t.qr_payload) if (t.status == TicketStatus.VALID and not extra.get("hide_qr", {}).get(t.pk)) else None}
+            {"t": t, "qr": qr_svg(t.qr_payload) if (t.qr_active and not extra.get("hide_qr", {}).get(t.pk)) else None}
             for t in tickets
         ],
         "platform_name": settings.PLATFORM_NAME,

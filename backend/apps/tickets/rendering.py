@@ -97,7 +97,7 @@ def tickets_pdf(tickets) -> bytes:
         c.setFillColor(colors.HexColor("#71717a"))
         c.drawCentredString(w / 2, 11 * mm, "Show this QR code at the entrance. Don't share it:")
         c.drawCentredString(w / 2, 7.5 * mm, "the first scan gets in.")
-        if t.status != "valid":
+        if not t.qr_active:
             c.setFillColor(colors.HexColor("#dc2626"))
             c.setFont("Helvetica-Bold", 28)
             c.saveState()

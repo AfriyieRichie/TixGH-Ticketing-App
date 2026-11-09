@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, type ColorValue } from "react-native";
+import { AppState, Text, type ColorValue } from "react-native";
 
 import { C } from "@/constants/theme";
 import { useAuth } from "@/lib/auth";
@@ -18,9 +18,17 @@ export default function TabsLayout() {
   const [hasScanEvents, setHasScanEvents] = useState(false);
 
   // Show the Scan tab only to organizer staff who have something to scan.
+  // Re-checked whenever the app comes back to the foreground, so newly added
+  // team members see the tab without signing out and in again.
   useEffect(() => {
     if (!user) return;
-    request<ScanEvent[]>("/scanner/events/").then((e) => setHasScanEvents(e.length > 0)).catch(() => {});
+    const check = () =>
+      request<ScanEvent[]>("/scanner/events/").then((e) => setHasScanEvents(e.length > 0)).catch(() => {});
+    check();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") check();
+    });
+    return () => sub.remove();
   }, [user, request]);
   const canScan = !!user && hasScanEvents;
 

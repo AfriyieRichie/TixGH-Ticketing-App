@@ -16,6 +16,7 @@ from apps.tickets.rendering import format_when, format_where
 from apps.tickets.signing import event_key_b64
 
 from . import services
+from .models import Direction
 
 
 def _scan_org_ids(user) -> list[int]:
@@ -39,6 +40,7 @@ def _event_info(ev) -> dict:
         "slug": ev.slug, "title": ev.title, "start_at": ev.start_at, "end_at": ev.end_at,
         "when": format_when(ev), "where": format_where(ev), "status": ev.status,
         "organization": ev.organization.name,
+        **services.reentry_policy(ev),
     }
 
 
@@ -93,6 +95,9 @@ class ScanSerializer(serializers.Serializer):
     gate = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
     device_id = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
     scanned_at = serializers.DateTimeField(required=False, allow_null=True)
+    direction = serializers.ChoiceField(choices=Direction.choices, default=Direction.IN)
+    count = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=50,
+                                     help_text="People on a group ticket entering/leaving now (default: all)")
 
 
 class ScanView(APIView):
@@ -105,7 +110,8 @@ class ScanView(APIView):
         ser.is_valid(raise_exception=True)
         d = ser.validated_data
         result = services.check_in(event, d["raw"], user=request.user, gate=d["gate"],
-                                   device_id=d["device_id"], scanned_at=d.get("scanned_at"))
+                                   device_id=d["device_id"], scanned_at=d.get("scanned_at"),
+                                   direction=d["direction"], count=d.get("count"))
         return Response({**result, "stats": services.event_stats(event)})
 
 
@@ -114,6 +120,8 @@ class OfflineScanSerializer(serializers.Serializer):
     raw = serializers.CharField(max_length=120)
     gate = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
     scanned_at = serializers.DateTimeField()
+    direction = serializers.ChoiceField(choices=Direction.choices, default=Direction.IN)
+    count = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=50)
 
 
 class SyncSerializer(serializers.Serializer):

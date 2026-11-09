@@ -149,7 +149,11 @@ class Ticket(models.Model):
         max_length=40, default=_access_token, editable=False, help_text="For the ticket's private link"
     )
     status = models.CharField(max_length=12, choices=TicketStatus.choices, default=TicketStatus.VALID)
-    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_in_at = models.DateTimeField(null=True, blank=True, help_text="First entry")
+    # Gate state. A ticket can admit several people (e.g. a table for 8).
+    admitted = models.PositiveSmallIntegerField(default=0, help_text="People who have entered at least once")
+    inside = models.PositiveSmallIntegerField(default=0, help_text="People currently inside")
+    reentries = models.PositiveSmallIntegerField(default=0)
     transferred_at = models.DateTimeField(
         null=True, blank=True, help_text="Set when sent to someone else; the buyer's order page then hides its QR"
     )
@@ -163,6 +167,13 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"{self.code} ({self.ticket_type.name})"
+
+    @property
+    def qr_active(self) -> bool:
+        """Whether the QR should be shown/usable: unused, or used at an event that allows re-entry."""
+        if self.status == TicketStatus.VALID:
+            return True
+        return self.status == TicketStatus.CHECKED_IN and self.event.reentry_allowed
 
     @property
     def qr_payload(self) -> str:

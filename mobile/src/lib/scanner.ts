@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isNetworkError } from "./api";
 import { useAuth } from "./auth";
 import { parsePayload } from "./signing";
-import type { ManifestTicket, ScanResponse, Stats } from "./types";
+import type { Direction, ManifestTicket, ReentryPolicy, ScanResponse, Stats } from "./types";
 
 const SYNC_EVERY_MS = 15_000;
 const ONLINE_TIMEOUT_MS = 4_000;
@@ -25,11 +25,11 @@ const ONLINE_TIMEOUT_MS = 4_000;
 type Manifest = {
   key: string;
   serverTime: string;
-  event: { title: string; when: string; where: string; status: string };
+  event: { title: string; when: string; where: string; status: string } & Partial<ReentryPolicy>;
   tickets: Record<number, ManifestTicket>;
 };
 
-type QueuedScan = { client_id: string; raw: string; gate: string; scanned_at: string };
+type QueuedScan = { client_id: string; raw: string; gate: string; scanned_at: string; direction: Direction; count?: number };
 
 export type ScanOutcome = ScanResponse & { offline: boolean };
 export type Alert = { id: string; text: string };
@@ -55,13 +55,20 @@ export async function setGate(g: string) {
 
 function computeStats(m: Manifest | null): Stats {
   const all = Object.values(m?.tickets ?? {}).filter((t) => t.status !== "void");
-  const inside = all.filter((t) => t.status === "checked_in");
   return {
     tickets: all.length,
-    checked_in: inside.length,
+    checked_in: all.filter((t) => (t.admitted ?? 0) > 0).length,
     people: all.reduce((s, t) => s + t.admits, 0),
-    people_in: inside.reduce((s, t) => s + t.admits, 0),
+    people_arrived: all.reduce((s, t) => s + (t.admitted ?? 0), 0),
+    people_in: all.reduce((s, t) => s + (t.inside ?? 0), 0),
   };
+}
+
+function reentryProblem(ev: Manifest["event"], t: ManifestTicket, now: Date): string | null {
+  if (!ev.reentry_allowed) return "No re-entry for this event";
+  if (ev.reentry_cutoff_at && now >= new Date(ev.reentry_cutoff_at)) return "Re-entry has closed";
+  if (ev.max_reentries != null && t.reentries >= ev.max_reentries) return `Re-entry limit reached (${ev.max_reentries})`;
+  return null;
 }
 
 export function useScanner(slug: string) {
@@ -170,39 +177,78 @@ export function useScanner(slug: string) {
     };
   }, [slug, sync]);
 
-  const decideOffline = (raw: string, gate: string): ScanOutcome => {
-    const now = new Date().toISOString();
+  const lookup = (raw: string): ManifestTicket | null => {
     const parsed = parsePayload(raw, manifest.current?.key ?? null);
-    const base = { scanned_at: now, offline: true, ticket: null } as const;
+    return parsed.kind === "garbage" ? null : findByCode(parsed.code);
+  };
+
+  const decideOffline = (raw: string, gate: string, direction: Direction, count?: number): ScanOutcome => {
+    const now = new Date();
+    const iso = now.toISOString();
+    const ev = manifest.current?.event;
+    const parsed = parsePayload(raw, manifest.current?.key ?? null);
+    const base = { scanned_at: iso, offline: true, ticket: null, direction } as const;
+    const enqueue = () => queue.current.push({ client_id: `${Date.now()}-${Math.random()}`, raw, gate, scanned_at: iso, direction, count });
     if (parsed.kind === "garbage" || (parsed.kind === "qr" && !parsed.signatureOk)) {
       return { ...base, result: "invalid", message: "Not a valid ticket" };
     }
     const t = findByCode(parsed.code);
     if (!t) {
       if (parsed.kind === "qr") {
-        // Genuine signature but not in our list yet: bought since the last sync.
-        queue.current.push({ client_id: `${Date.now()}-${Math.random()}`, raw, gate, scanned_at: now });
-        return { ...base, result: "ok", message: "Admit (new ticket, will confirm on sync)" };
+        // Genuine signature but not in our list yet (bought since the last sync).
+        enqueue();
+        return direction === "out"
+          ? { ...base, result: "exit", message: "Exit recorded (will confirm on sync)" }
+          : { ...base, result: "ok", message: "Admit (new ticket, will confirm on sync)" };
       }
       return { ...base, result: "invalid", message: "Code not found (offline). Ask them to show the QR." };
     }
-    if (manifest.current?.event.status === "cancelled") return { ...base, ticket: t, result: "event_cancelled", message: "This event was cancelled" };
+    if (ev?.status === "cancelled") return { ...base, ticket: t, result: "event_cancelled", message: "This event was cancelled" };
     if (t.status === "void") return { ...base, ticket: t, result: "void", message: "Ticket cancelled or refunded" };
-    if (t.status === "checked_in") {
-      return { ...base, ticket: t, result: "duplicate", message: "Already checked in",
+
+    if (direction === "out") {
+      if (!t.inside) return { ...base, ticket: t, result: "not_inside", message: "This ticket isn't inside" };
+      const n = Math.min(count ?? t.inside, t.inside);
+      t.inside -= n;
+      enqueue();
+      return { ...base, ticket: t, people: n, result: "exit",
+        message: (t.admits > 1 ? `Exit: ${n} of ${t.admits}` : "Exit recorded") + (ev?.reentry_allowed ? "" : ". No re-entry for this event") };
+    }
+
+    const neverIn = t.admits - t.admitted;
+    const returning = t.admitted - t.inside;
+    if (neverIn + returning === 0) {
+      return { ...base, ticket: t, result: "duplicate", message: t.admits > 1 ? `All ${t.admits} already inside` : "Already inside",
         previous: t.checked_in_at ? { at: t.checked_in_at, gate: "" } : undefined };
     }
-    t.status = "checked_in";
-    t.checked_in_at = now;
-    queue.current.push({ client_id: `${Date.now()}-${Math.random()}`, raw, gate, scanned_at: now });
-    return { ...base, ticket: t, result: "ok", message: "Admit" };
+    const want = Math.min(count ?? (neverIn || returning), neverIn + returning);
+    const fresh = Math.min(want, neverIn);
+    let back = want - fresh;
+    if (back && ev) {
+      const problem = reentryProblem(ev, t, now);
+      if (problem) {
+        if (!fresh) return { ...base, ticket: t, result: "no_reentry", message: problem };
+        back = 0;
+      }
+    }
+    t.admitted += fresh;
+    t.inside += fresh + back;
+    if (back) t.reentries += 1;
+    if (t.status !== "checked_in") {
+      t.status = "checked_in";
+      t.checked_in_at = iso;
+    }
+    enqueue();
+    const result = back && !fresh ? "reentry" : "ok";
+    const label = result === "reentry" ? "Welcome back" : "Admit";
+    return { ...base, ticket: t, people: fresh + back, result, message: t.admits > 1 ? `${label}: ${fresh + back} of ${t.admits}` : label };
   };
 
-  const scan = useCallback(async (raw: string, gate: string): Promise<ScanOutcome> => {
+  const scan = useCallback(async (raw: string, gate: string, direction: Direction = "in", count?: number): Promise<ScanOutcome> => {
     let outcome: ScanOutcome;
     try {
       const res = await request<ScanResponse>(`/scanner/events/${slug}/scan/`, {
-        body: { raw, gate, device_id: await getDeviceId() }, timeoutMs: ONLINE_TIMEOUT_MS,
+        body: { raw, gate, direction, count, device_id: await getDeviceId() }, timeoutMs: ONLINE_TIMEOUT_MS,
       });
       if (res.ticket) upsert([res.ticket]);
       setOnline(true);
@@ -210,7 +256,7 @@ export function useScanner(slug: string) {
     } catch (e) {
       if (!isNetworkError(e)) throw e;
       setOnline(false);
-      outcome = decideOffline(raw, gate);
+      outcome = decideOffline(raw, gate, direction, count);
     }
     await persist();
     setStats(computeStats(manifest.current));
@@ -226,6 +272,6 @@ export function useScanner(slug: string) {
 
   return {
     ready, online, stats, queued, lastSync, alerts, error, eventInfo,
-    scan, undo, sync, dismissAlert: (id: string) => setAlerts((a) => a.filter((x) => x.id !== id)),
+    scan, undo, sync, lookup, dismissAlert: (id: string) => setAlerts((a) => a.filter((x) => x.id !== id)),
   };
 }
