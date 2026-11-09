@@ -48,6 +48,9 @@ class Order(models.Model):
     buyer_name = models.CharField(max_length=150)
     buyer_email = models.EmailField(blank=True)
     buyer_phone = models.CharField(max_length=20, blank=True, help_text="E.164")
+    buyer_organization = models.CharField(max_length=120, blank=True)
+    buyer_job_title = models.CharField(max_length=120, blank=True)
+    share_contact = models.BooleanField(default=False, help_text="Agreed to put contact details on badge QR")
 
     status = models.CharField(max_length=15, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     promo_code = models.ForeignKey(PromoCode, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")
@@ -145,6 +148,13 @@ class Ticket(models.Model):
     # Who the ticket was sent to when there's no account yet (e.g. after a transfer).
     attendee_phone = models.CharField(max_length=20, blank=True)
     attendee_email = models.EmailField(blank=True)
+    # Badge details (conferences).
+    attendee_organization = models.CharField(max_length=120, blank=True)
+    attendee_job_title = models.CharField(max_length=120, blank=True)
+    badge_role = models.CharField(max_length=40, blank=True, help_text="Overrides the ticket type's role, e.g. Speaker")
+    share_contact = models.BooleanField(default=False)
+    badge_printed_at = models.DateTimeField(null=True, blank=True)
+    badge_print_count = models.PositiveSmallIntegerField(default=0)
     access_token = models.CharField(
         max_length=40, default=_access_token, editable=False, help_text="For the ticket's private link"
     )

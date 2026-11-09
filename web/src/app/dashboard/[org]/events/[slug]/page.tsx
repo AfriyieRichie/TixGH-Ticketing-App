@@ -84,6 +84,11 @@ function ManageEvent() {
           <div className="flex flex-wrap gap-2">
             {ev.status === "draft" && <Button onClick={() => act("publish")} loading={busy === "publish"} disabled={ev.publish_problems.length > 0}>Publish</Button>}
             {ev.status === "published" && ev.tickets_sold === 0 && <Button variant="secondary" onClick={() => act("unpublish")} loading={busy === "unpublish"}>Unpublish</Button>}
+            {ev.badges_enabled && ev.status === "published" && (
+              <a href={`${base}/events/${ev.slug}/desk`} className="inline-flex items-center rounded-lg bg-zinc-900 px-4 py-2.5 font-semibold text-white hover:bg-zinc-700">
+                🖨 Check-in desk
+              </a>
+            )}
             <Button variant="secondary" onClick={duplicate} loading={busy === "duplicate"}>Duplicate</Button>
             {ev.status === "published" && !ev.has_ended && <Button variant="danger" onClick={() => setCancelling(true)}>Cancel event</Button>}
           </div>

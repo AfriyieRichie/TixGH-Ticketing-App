@@ -34,10 +34,12 @@ class WalletTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = [
-            "code", "qr_payload", "ticket_type_name", "admits", "attendee_name", "status",
+            "code", "qr_payload", "ticket_type_name", "admits", "attendee_name", "attendee_organization",
+            "attendee_job_title", "share_contact", "status",
             "checked_in_at", "event", "page_url", "can_transfer", "issued_at",
         ]
-        read_only_fields = [f for f in fields if f != "attendee_name"]
+        read_only_fields = [f for f in fields if f not in ("attendee_name", "attendee_organization",
+                                                            "attendee_job_title", "share_contact")]
 
     def get_qr_payload(self, obj) -> str | None:
         return obj.qr_payload if obj.qr_active else None

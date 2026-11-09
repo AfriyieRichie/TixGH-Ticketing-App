@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Alert, Badge, Button, Field, Input, Select } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { cedis, fromLocalInput, toLocalInput } from "@/lib/format";
-import type { OrgEvent, TicketType } from "@/lib/types";
+import { WRISTBANDS, type OrgEvent, type TicketType } from "@/lib/types";
 
 import { useOrg } from "./org";
 
@@ -29,7 +29,11 @@ export function TicketTypes({ event, onChange }: { event: OrgEvent; onChange: ()
       ) : (
         <div key={t.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4">
           <div className="min-w-0 flex-1">
-            <p className="font-bold">{t.name} {t.visibility === "hidden" && <Badge>Hidden</Badge>} {!t.is_active && <Badge color="red">Off</Badge>}</p>
+            <p className="font-bold">
+              {t.wristband_color && <span className="mr-1.5 inline-block h-3 w-3 rounded-full ring-1 ring-zinc-300" style={{ background: WRISTBANDS[t.wristband_color]?.hex }} title={`${WRISTBANDS[t.wristband_color]?.label} wristband`} />}
+              {t.name} {t.visibility === "hidden" && <Badge>Hidden</Badge>} {!t.is_active && <Badge color="red">Off</Badge>}
+              {event.badges_enabled && t.badge_role && <Badge color="blue">{t.badge_role}</Badge>}
+            </p>
             <p className="text-sm text-zinc-600">
               {Number(t.price) === 0 ? "Free" : cedis(t.price)}
               {Number(t.price) > 0 && ` · buyer pays ${cedis(t.pricing.buyer_pays)} · you get ${cedis(t.pricing.organizer_receives)}`}
@@ -58,6 +62,7 @@ function TicketForm({ event, ticket, onDone, onCancel }: { event: OrgEvent; tick
     min_per_order: String(ticket?.min_per_order ?? 1), max_per_order: String(ticket?.max_per_order ?? 10),
     sales_start_at: toLocalInput(ticket?.sales_start_at), sales_end_at: toLocalInput(ticket?.sales_end_at),
     visibility: ticket?.visibility ?? "visible", is_active: ticket?.is_active ?? true,
+    badge_role: ticket?.badge_role ?? "", wristband_color: ticket?.wristband_color ?? "",
   });
   const [more, setMore] = useState(false);
   const [error, setError] = useState("");
@@ -123,6 +128,15 @@ function TicketForm({ event, ticket, onDone, onCancel }: { event: OrgEvent; tick
               <option value="visible">Visible</option><option value="hidden">Hidden</option>
             </Select>
           </Field>
+          <Field label="Wristband colour" hint="Shown on the scanner at ADMIT">
+            <Select value={f.wristband_color} onChange={set("wristband_color")}>
+              <option value="">None</option>
+              {Object.entries(WRISTBANDS).map(([v, w]) => <option key={v} value={v}>{w.label}</option>)}
+            </Select>
+          </Field>
+          {event.badges_enabled && (
+            <Field label="Badge role" hint="e.g. Delegate. Blank = ticket name"><Input maxLength={40} value={f.badge_role} onChange={set("badge_role")} /></Field>
+          )}
           <label className="flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" className="h-4 w-4 accent-brand" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} />
             Selling (untick to pause)

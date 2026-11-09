@@ -165,3 +165,11 @@ hourly event reminders (24 h before), and cancellation notices. Every SMS and em
 | `POST scanner/events/{slug}/scan/` | Check one ticket in (server decides; row-locked against double entry) |
 | `POST scanner/events/{slug}/sync/` | Upload offline scans; later duplicates are reported back |
 | `POST scanner/events/{slug}/undo/` | Reverse a mistaken check-in |
+| `GET scanner/events/{slug}/badges/` | Badge desk queue (`status=ready/printed`, `q=` search) |
+| `PATCH scanner/events/{slug}/badges/{code}/` | Fix name / organization / job title (role: managers only) |
+| `POST scanner/events/{slug}/badges/{code}/printed/` | Mark a badge printed (reprints count up) |
+
+**Re-entry** (per event): scan out / back in, optional max re-entries and cut-off; group tickets can enter in parts.
+**Badges** (per event): registration collects organization and job title plus an opt-out contact-sharing choice;
+phones admit at the door and the dashboard's **Check-in desk** prints stickers (vCard QR) on a label printer.
+**Wristbands**: a colour per ticket type, shown on the scanner at ADMIT.

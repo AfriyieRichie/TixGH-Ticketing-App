@@ -25,7 +25,7 @@ const ONLINE_TIMEOUT_MS = 4_000;
 type Manifest = {
   key: string;
   serverTime: string;
-  event: { title: string; when: string; where: string; status: string } & Partial<ReentryPolicy>;
+  event: { title: string; when: string; where: string; status: string; badges_enabled?: boolean } & Partial<ReentryPolicy>;
   tickets: Record<number, ManifestTicket>;
 };
 

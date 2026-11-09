@@ -63,6 +63,8 @@ export type EventDetail = Omit<EventCardData, "venue"> & {
   reentry_allowed: boolean;
   max_reentries: number | null;
   reentry_cutoff_at: string | null;
+  badges_enabled: boolean;
+  badge_contact_default: boolean;
   refund_policy: string;
   refund_policy_details: string;
   has_ended: boolean;
@@ -176,8 +178,25 @@ export type TicketType = {
   visibility: "visible" | "hidden";
   sort_order: number;
   is_active: boolean;
+  badge_role: string;
+  wristband_color: string;
   sale_status: SaleStatus;
   pricing: Pricing;
+};
+
+export const WRISTBANDS: Record<string, { label: string; hex: string }> = {
+  red: { label: "Red", hex: "#DC2626" }, orange: { label: "Orange", hex: "#EA580C" },
+  yellow: { label: "Yellow", hex: "#FACC15" }, gold: { label: "Gold", hex: "#CA8A04" },
+  green: { label: "Green", hex: "#16A34A" }, blue: { label: "Blue", hex: "#2563EB" },
+  purple: { label: "Purple", hex: "#7C3AED" }, pink: { label: "Pink", hex: "#EC4899" },
+  white: { label: "White", hex: "#F4F4F5" }, black: { label: "Black", hex: "#18181B" },
+  silver: { label: "Silver", hex: "#A1A1AA" },
+};
+
+export type Badge = {
+  code: string; name: string; organization: string; job_title: string; role: string; ticket_type: string;
+  event_title: string; event_code: string; qr: string | null; share_contact: boolean;
+  checked_in_at: string | null; printed_at: string | null; print_count: number; status: string;
 };
 
 export type OrgEvent = {
@@ -204,6 +223,11 @@ export type OrgEvent = {
   reentry_allowed: boolean;
   max_reentries: number | null;
   reentry_cutoff_at: string | null;
+  badges_enabled: boolean;
+  badge_event_code: string;
+  badge_contact_default: boolean;
+  badge_width_mm: number;
+  badge_height_mm: number;
   refund_policy: string;
   refund_policy_details: string;
   is_featured: boolean;

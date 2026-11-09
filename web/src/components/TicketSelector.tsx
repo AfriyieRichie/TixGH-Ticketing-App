@@ -26,12 +26,14 @@ export function TicketSelector({ event }: { event: EventDetail }) {
   const [promo, setPromo] = useState<PromoResult | null>(null);
   const [promoError, setPromoError] = useState("");
   const [step, setStep] = useState<"select" | "details">("select");
-  const [buyer, setBuyer] = useState({ full_name: "", phone: "", email: "" });
+  const [buyer, setBuyer] = useState({ full_name: "", phone: "", email: "", organization: "", job_title: "",
+    share_contact: event.badge_contact_default });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (user) setBuyer((b) => ({
+      ...b,
       full_name: b.full_name || user.full_name, phone: b.phone || user.phone || "", email: b.email || user.email || "",
     }));
   }, [user]);
@@ -160,6 +162,18 @@ export function TicketSelector({ event }: { event: EventDetail }) {
           <Field label="Email (optional)" hint="For a receipt and PDF tickets">
             <Input type="email" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} autoComplete="email" />
           </Field>
+          {event.badges_enabled && (
+            <div className="space-y-3 rounded-lg bg-zinc-50 p-3">
+              <p className="text-sm font-semibold">For your name badge</p>
+              <Field label="Organization (optional)"><Input value={buyer.organization} onChange={(e) => setBuyer({ ...buyer, organization: e.target.value })} autoComplete="organization" /></Field>
+              <Field label="Job title (optional)"><Input value={buyer.job_title} onChange={(e) => setBuyer({ ...buyer, job_title: e.target.value })} autoComplete="organization-title" /></Field>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand" checked={buyer.share_contact}
+                  onChange={(e) => setBuyer({ ...buyer, share_contact: e.target.checked })} />
+                <span>Put my contact (phone and email) on my badge QR so people I meet can save it</span>
+              </label>
+            </div>
+          )}
           <Summary subtotal={subtotal} fees={fees} total={total} lines={lines.map((l) => `${l.n} × ${l.t.name}`)} />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" className="w-full" size="lg" loading={busy}>

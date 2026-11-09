@@ -179,6 +179,17 @@ export default function ScannerScreen() {
               <Text style={s.code}>{result.ticket.code}</Text>
             </>
           ) : <Text style={s.detail}>{result.message}</Text>}
+          {result.ticket?.wristband && ["ok", "reentry"].includes(result.result) && (result.people ?? 1) > 0 ? (
+            <View style={s.band}>
+              <View style={[s.swatch, { backgroundColor: result.ticket.wristband.hex }]} />
+              <Text style={s.bandText}>
+                GIVE {result.people && result.people > 1 ? `${result.people} × ` : ""}{result.ticket.wristband.label.toUpperCase()} WRISTBAND
+              </Text>
+            </View>
+          ) : null}
+          {result.result === "ok" && sc.eventInfo?.badges_enabled ? (
+            <Text style={s.detail}>🏷 Badge printing at the desk</Text>
+          ) : null}
           {result.result === "duplicate" && result.previous ? (
             <Text style={s.detail}>First used {timeOnly(result.previous.at)}{result.previous.gate ? ` at ${result.previous.gate}` : ""}</Text>
           ) : null}
@@ -252,6 +263,10 @@ const s = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   alert: { backgroundColor: "#B45309", margin: 12, padding: 12, borderRadius: 12 },
   frame: { position: "absolute", top: "32%", left: "15%", right: "15%", aspectRatio: 1, borderWidth: 3, borderColor: "rgba(255,255,255,0.85)", borderRadius: 24 },
+  band: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 18, backgroundColor: "rgba(0,0,0,0.25)",
+    paddingVertical: 12, paddingHorizontal: 18, borderRadius: 14 },
+  swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 3, borderColor: "#fff" },
+  bandText: { color: "#fff", fontSize: 20, fontWeight: "900" },
   modeBar: { position: "absolute", bottom: 104, left: 16, right: 16, flexDirection: "row", gap: 8 },
   mode: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: "center", backgroundColor: "rgba(0,0,0,0.55)",
     borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },

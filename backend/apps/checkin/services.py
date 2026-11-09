@@ -28,6 +28,7 @@ from apps.orders.models import Ticket, TicketStatus
 from apps.tickets.models import TicketTransfer
 from apps.tickets.signing import PREFIX, parse_payload
 
+from .badges import badge_role, wristband
 from .models import CheckIn, Direction, ScanResult
 
 MESSAGES = {
@@ -60,6 +61,8 @@ def ticket_row(t: Ticket) -> dict:
         "admitted": t.admitted,
         "inside": t.inside,
         "reentries": t.reentries,
+        "role": badge_role(t),
+        "wristband": wristband(t.ticket_type),
     }
 
 

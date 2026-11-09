@@ -15,6 +15,8 @@ type Form = {
   venue: string; online_url: string; start_at: string; end_at: string; visibility: OrgEvent["visibility"];
   age_restriction: string; max_tickets_per_order: string; fee_bearer: string; allow_transfers: boolean;
   reentry_allowed: boolean; max_reentries: string; reentry_cutoff_at: string;
+  badges_enabled: boolean; badge_event_code: string; badge_contact_default: boolean;
+  badge_width_mm: string; badge_height_mm: string;
   refund_policy: string; refund_policy_details: string;
 };
 
@@ -28,7 +30,12 @@ function initial(ev?: OrgEvent): Form {
     allow_transfers: ev?.allow_transfers ?? true,
     reentry_allowed: ev?.reentry_allowed ?? false,
     max_reentries: ev?.max_reentries != null ? String(ev.max_reentries) : "",
-    reentry_cutoff_at: toLocalInput(ev?.reentry_cutoff_at), refund_policy: ev?.refund_policy ?? "no_refunds",
+    reentry_cutoff_at: toLocalInput(ev?.reentry_cutoff_at),
+    badges_enabled: ev?.badges_enabled ?? false,
+    badge_event_code: ev?.badge_event_code ?? "",
+    badge_contact_default: ev?.badge_contact_default ?? true,
+    badge_width_mm: String(ev?.badge_width_mm ?? 90),
+    badge_height_mm: String(ev?.badge_height_mm ?? 60), refund_policy: ev?.refund_policy ?? "no_refunds",
     refund_policy_details: ev?.refund_policy_details ?? "",
   };
 }
@@ -73,6 +80,8 @@ export function EventForm({ event, onSaved }: { event?: OrgEvent; onSaved: (ev: 
         max_tickets_per_order: Number(f.max_tickets_per_order),
         max_reentries: f.reentry_allowed && f.max_reentries ? Number(f.max_reentries) : null,
         reentry_cutoff_at: f.reentry_allowed ? fromLocalInput(f.reentry_cutoff_at) : null,
+        badge_width_mm: Number(f.badge_width_mm) || 90,
+        badge_height_mm: Number(f.badge_height_mm) || 60,
       };
       const path = event ? `/organizations/${org.slug}/events/${event.slug}/` : `/organizations/${org.slug}/events/`;
       let ev = await request<OrgEvent>(path, { method: event ? "PATCH" : "POST", body });
@@ -202,6 +211,38 @@ export function EventForm({ event, onSaved }: { event?: OrgEvent; onSaved: (ev: 
               <Input type="datetime-local" value={f.reentry_cutoff_at} onChange={(e) => set("reentry_cutoff_at", e.target.value)} />
             </Field>
           </div>
+        )}
+      </Section>
+
+      <Section title="Name badges (conferences)">
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={f.badges_enabled} onChange={(e) => set("badges_enabled", e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand" />
+          <span>
+            <span className="font-medium">Print name badges at check-in</span>
+            <span className="block text-zinc-500">Registration asks for organization and job title. Staff scan at the door and badges
+              print at the check-in desk (laptop + label printer).</span>
+          </span>
+        </label>
+        {f.badges_enabled && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Event code on badge" hint="e.g. APD2026">
+                <Input maxLength={20} value={f.badge_event_code} onChange={(e) => set("badge_event_code", e.target.value.toUpperCase())} />
+              </Field>
+              <Field label="Sticker width (mm)"><Input type="number" min={30} max={200} value={f.badge_width_mm} onChange={(e) => set("badge_width_mm", e.target.value)} /></Field>
+              <Field label="Sticker height (mm)"><Input type="number" min={20} max={200} value={f.badge_height_mm} onChange={(e) => set("badge_height_mm", e.target.value)} /></Field>
+            </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" checked={f.badge_contact_default} onChange={(e) => set("badge_contact_default", e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-brand" />
+              <span>
+                <span className="font-medium">Networking QR on badges</span>
+                <span className="block text-zinc-500">&ldquo;Put my contact on my badge QR&rdquo; starts ticked at registration. Attendees can untick it.
+                  Set roles like Delegate or Speaker on each ticket type, and change individuals at the desk.</span>
+              </span>
+            </label>
+          </>
         )}
       </Section>
 

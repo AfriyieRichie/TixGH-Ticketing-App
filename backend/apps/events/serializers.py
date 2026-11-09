@@ -55,7 +55,7 @@ class TicketTypeSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "description", "price", "quantity", "quantity_sold", "quantity_available",
             "admits", "min_per_order", "max_per_order", "sales_start_at", "sales_end_at",
-            "visibility", "sort_order", "is_active", "sale_status", "pricing",
+            "visibility", "sort_order", "is_active", "badge_role", "wristband_color", "sale_status", "pricing",
         ]
         read_only_fields = ["quantity_sold"]
 
@@ -149,7 +149,8 @@ class EventSerializer(serializers.ModelSerializer):
             "format", "venue", "venue_detail", "online_url", "start_at", "end_at",
             "status", "visibility", "age_restriction", "max_tickets_per_order",
             "fee_bearer", "effective_fee_bearer", "allow_transfers", "reentry_allowed", "max_reentries",
-            "reentry_cutoff_at", "refund_policy", "refund_policy_details",
+            "reentry_cutoff_at", "badges_enabled", "badge_event_code", "badge_contact_default", "badge_width_mm",
+            "badge_height_mm", "refund_policy", "refund_policy_details",
             "is_featured", "published_at", "cancelled_at", "cancellation_reason",
             "ticket_types", "tickets_sold", "has_ended", "publish_problems",
             "created_at", "updated_at",
@@ -268,7 +269,7 @@ class PublicEventDetailSerializer(PublicEventListSerializer):
     class Meta(PublicEventListSerializer.Meta):
         fields = PublicEventListSerializer.Meta.fields + [
             "description", "ticket_types", "age_restriction", "max_tickets_per_order", "allow_transfers",
-            "reentry_allowed", "max_reentries", "reentry_cutoff_at",
+            "reentry_allowed", "max_reentries", "reentry_cutoff_at", "badges_enabled", "badge_contact_default",
             "refund_policy", "refund_policy_details", "has_ended", "cancellation_reason",
             "organizer_description",
         ]

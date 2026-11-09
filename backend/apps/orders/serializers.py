@@ -16,6 +16,11 @@ class BuyerSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
     phone = serializers.CharField(required=False, allow_blank=True, help_text="Tickets are sent here by SMS")
+    # Badge details (events with badge printing).
+    organization = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    job_title = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    share_contact = serializers.BooleanField(required=False, default=False,
+                                             help_text="Put my contact on my badge QR so people I meet can save it")
 
     def validate_phone(self, value):
         if not value:

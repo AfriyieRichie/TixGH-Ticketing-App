@@ -62,6 +62,8 @@ export type ManifestTicket = {
   admitted: number;
   inside: number;
   reentries: number;
+  role?: string;
+  wristband?: { color: string; label: string; hex: string } | null;
 };
 
 export type ScanResultKind =

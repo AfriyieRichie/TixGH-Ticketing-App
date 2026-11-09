@@ -127,6 +127,14 @@ class Event(TimeStampedModel):
         null=True, blank=True, help_text="Re-entries allowed per ticket. Blank = unlimited"
     )
     reentry_cutoff_at = models.DateTimeField(null=True, blank=True, help_text="No re-entry after this time")
+    # Conference badges, printed at the check-in desk when attendees are admitted.
+    badges_enabled = models.BooleanField(default=False, help_text="Print name badges at check-in")
+    badge_event_code = models.CharField(max_length=20, blank=True, help_text="Short code on the badge, e.g. APD2026")
+    badge_contact_default = models.BooleanField(
+        default=True, help_text="Contact sharing on the badge QR starts ticked at registration (attendees can untick)"
+    )
+    badge_width_mm = models.PositiveSmallIntegerField(default=90, validators=[MinValueValidator(30), MaxValueValidator(200)])
+    badge_height_mm = models.PositiveSmallIntegerField(default=60, validators=[MinValueValidator(20), MaxValueValidator(200)])
     refund_policy = models.CharField(max_length=10, choices=RefundPolicy.choices, default=RefundPolicy.NO_REFUNDS)
     refund_policy_details = models.TextField(blank=True)
 
@@ -202,6 +210,27 @@ class TicketVisibility(models.TextChoices):
     HIDDEN = "hidden", "Hidden (unlocked by an access code)"
 
 
+class WristbandColor(models.TextChoices):
+    RED = "red", "Red"
+    ORANGE = "orange", "Orange"
+    YELLOW = "yellow", "Yellow"
+    GOLD = "gold", "Gold"
+    GREEN = "green", "Green"
+    BLUE = "blue", "Blue"
+    PURPLE = "purple", "Purple"
+    PINK = "pink", "Pink"
+    WHITE = "white", "White"
+    BLACK = "black", "Black"
+    SILVER = "silver", "Silver"
+
+
+WRISTBAND_HEX = {
+    "red": "#DC2626", "orange": "#EA580C", "yellow": "#FACC15", "gold": "#CA8A04", "green": "#16A34A",
+    "blue": "#2563EB", "purple": "#7C3AED", "pink": "#EC4899", "white": "#F4F4F5", "black": "#18181B",
+    "silver": "#A1A1AA",
+}
+
+
 class TicketType(TimeStampedModel):
     """e.g. Early Bird, Regular, VIP, Table for 10."""
 
@@ -225,6 +254,9 @@ class TicketType(TimeStampedModel):
     visibility = models.CharField(max_length=10, choices=TicketVisibility.choices, default=TicketVisibility.VISIBLE)
     sort_order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    badge_role = models.CharField(max_length=40, blank=True, help_text="Role printed on badges, e.g. Delegate. Blank = ticket name")
+    wristband_color = models.CharField(max_length=10, choices=WristbandColor.choices, blank=True,
+                                       help_text="Wristband handed out at the gate for this ticket type")
 
     class Meta:
         ordering = ["sort_order", "price", "id"]

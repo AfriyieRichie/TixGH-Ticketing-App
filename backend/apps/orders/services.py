@@ -134,6 +134,9 @@ def create_order(*, event: Event, items: list[dict], buyer: dict, user=None, pro
             buyer_name=buyer["full_name"],
             buyer_email=buyer.get("email") or "",
             buyer_phone=buyer.get("phone") or "",
+            buyer_organization=(buyer.get("organization") or "").strip(),
+            buyer_job_title=(buyer.get("job_title") or "").strip(),
+            share_contact=bool(buyer.get("share_contact")) and event.badges_enabled,
             promo_code=promo,
             fee_bearer=event.effective_fee_bearer,
             subtotal=subtotal,
@@ -197,6 +200,8 @@ def fulfil_order(order: Order, amount_paid: Decimal | None) -> Order:
             Ticket(
                 order=order, order_item=item, event_id=order.event_id, ticket_type_id=item.ticket_type_id,
                 holder=order.user, attendee_name=order.buyer_name,
+                attendee_organization=order.buyer_organization, attendee_job_title=order.buyer_job_title,
+                share_contact=order.share_contact,
             )
             for item in items
             for _ in range(item.quantity)
