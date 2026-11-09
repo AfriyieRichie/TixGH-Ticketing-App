@@ -13,7 +13,7 @@ offline gate check-in.
 |------------|----------------------------------------|------------------------------------|
 | `backend/` | REST API, admin panel, background jobs | Python, Django, DRF, Celery        |
 | `web/`     | Attendee site and organizer dashboard  | Next.js 15, TypeScript, Tailwind   |
-| `mobile/`  | Attendee app and gate-scanner app      | React Native / Expo *(Phase 6)*    |
+| `mobile/`  | Attendee app and gate-scanner app      | React Native / Expo (SDK 58)       |
 
 ## Running the backend locally (Windows PowerShell)
 
@@ -45,6 +45,17 @@ npm run dev        # http://localhost:3000
 ```
 `web/.env.local` points at the API (`NEXT_PUBLIC_API_URL=http://127.0.0.1:8000`). Keep the backend running too.
 
+## Running the mobile app
+
+```powershell
+cd mobile
+npm install
+npx expo start        # scan the QR with the Expo Go app (same Wi-Fi as your PC)
+```
+It talks to the live API by default; to use a local backend, copy `.env.example` to `.env`
+and set `EXPO_PUBLIC_API_URL`. The **Scan** tab appears for users on an organizer team with
+the Owner, Admin or Gate scanner role.
+
 ## Build phases
 
 1. **Foundation** ✅ accounts (phone/email + OTP), organizers, teams and roles, payout accounts, platform fee settings, admin
@@ -52,7 +63,7 @@ npm run dev        # http://localhost:3000
 3. **Checkout and payments** ✅ guest checkout, 10-minute ticket holds, promo codes, Paystack (MoMo and cards) with automatic split, simulated gateway for development
 4. **Ticket delivery** ✅ signed QR codes, SMS and email with PDF, no-app ticket pages, WhatsApp share, wallet, transfers, reminders, cancellation notices
 5. **Web app** ✅ home, search, event pages, checkout, login, my tickets, organizer dashboard (events, tickets, promo codes, sales, attendees + CSV, payouts, team)
-6. Mobile apps and offline gate scanner
+6. **Mobile app** ✅ one Expo app: events, offline ticket wallet, and a gate scanner (offline-capable, multi-gate sync, forged/duplicate detection)
 7. Growth: discovery, affiliates, campaigns, reviews
 8. Subscriptions and add-ons, refunds and resale, production deployment
 
@@ -144,3 +155,13 @@ hourly event reminders (24 h before), and cancellation notices. Every SMS and em
 | `GET organizations/{org}/events/{slug}/stats/` | Per-event sales, per ticket type, daily earnings, check-ins |
 | `GET organizations/{org}/events/{slug}/attendees/` | Attendee list (`q`, `status`, `ticket_type`, `export=csv`) |
 | `GET payments/banks/` | Ghana banks for payout accounts (from the gateway, cached daily) |
+
+## API overview (Phase 6: gate scanning)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET scanner/events/` | Events the user can scan, with check-in counts |
+| `GET scanner/events/{slug}/manifest/?since=` | Offline data: event signing key and ticket list (deltas with `since`) |
+| `POST scanner/events/{slug}/scan/` | Check one ticket in (server decides; row-locked against double entry) |
+| `POST scanner/events/{slug}/sync/` | Upload offline scans; later duplicates are reported back |
+| `POST scanner/events/{slug}/undo/` | Reverse a mistaken check-in |
