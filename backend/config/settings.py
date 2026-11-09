@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.payments",
     "apps.tickets",
     "apps.notifications",
+    "apps.checkin",
 ]
 
 MIDDLEWARE = [

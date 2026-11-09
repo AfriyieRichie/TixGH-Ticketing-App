@@ -154,6 +154,8 @@ class Ticket(models.Model):
         null=True, blank=True, help_text="Set when sent to someone else; the buyer's order page then hides its QR"
     )
     issued_at = models.DateTimeField(auto_now_add=True)
+    # Lets gate scanners download only what changed since their last sync.
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         ordering = ["issued_at", "id"]

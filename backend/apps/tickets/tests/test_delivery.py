@@ -63,7 +63,8 @@ class SigningTests(DeliveryBase):
         self.assertTrue(payload.startswith(f"TX1:{t.code}:"))
         self.assertEqual(parse_payload(payload, self.event.pk), t.code)
         self.assertIsNone(parse_payload(payload, self.event.pk + 1))  # other event's key
-        forged = f"TX1:{t.code[:-1]}X:{payload.split(':')[2]}"
+        last = "Y" if t.code[-1] == "X" else "X"  # must differ from the real code
+        forged = f"TX1:{t.code[:-1]}{last}:{payload.split(":")[2]}"
         self.assertIsNone(parse_payload(forged, self.event.pk))
         self.assertEqual(parse_payload(t.code.lower(), self.event.pk), t.code)  # typed in by hand
 
