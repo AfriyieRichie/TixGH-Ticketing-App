@@ -1,0 +1,7 @@
+Hi {{ order.buyer_name }},
+
+{{ what }} for {{ event.title }} ({{ when }}) has been refunded.
+{% if refund.amount > 0 %}Amount: {{ amount }}, back to your original payment method within 1-5 working days.{% if refund.kind != "cancellation" %} The booking fee is not refundable.{% endif %}
+{% endif %}
+Refunded tickets: {% for t in tickets %}{{ t.code }} {% endfor %}
+Order {{ order.reference }}

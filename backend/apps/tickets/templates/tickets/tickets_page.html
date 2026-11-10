@@ -43,6 +43,7 @@ h1{font-size:22px;margin:4px 0}.meta{color:var(--muted);margin:0 0 16px;line-hei
   </div>
   {% endwith %}{% endfor %}
   {% if pdf_url %}<a class="btn" href="{{ pdf_url }}">Download PDF</a>{% endif %}
+  {% if manage_url %}<a class="btn" style="background:#fff;color:var(--brand);border:1px solid var(--line)" href="{{ manage_url }}">Manage order (refunds, receipt)</a>{% endif %}
   <p class="note">Show the QR code at the entrance. Each QR works once, so don't share it.<br>
   Tip: take a screenshot or download the PDF in case there's no network at the venue.</p>
 </main></body></html>

@@ -114,6 +114,23 @@ def notify_event_cancelled(event) -> int:
     return orders.count()
 
 
+def send_refund_notice(refund) -> None:
+    order = refund.order
+    ev = order.event
+    n = refund.tickets.count()
+    what = "Your order" if order.status == OrderStatus.REFUNDED else f"{n} ticket{'s' if n != 1 else ''} from your order"
+    amount = f"GHS {refund.amount}"
+    if order.buyer_phone and refund.amount > 0:
+        sms = (f"{settings.PLATFORM_NAME}: {what} for {_short(ev.title)} ({order.reference}) has been refunded: "
+               f"{amount} back to your original payment method, usually within 1-5 working days.")
+        _log("refund", "sms", order.buyer_phone, order, lambda: send_sms(order.buyer_phone, sms))
+    if order.buyer_email:
+        ctx = {"order": order, "event": ev, "refund": refund, "what": what, "amount": amount,
+               "when": format_when(ev), "tickets": list(refund.tickets.all())}
+        _log("refund", "email", order.buyer_email, order,
+             lambda: _email(order.buyer_email, f"Refund: {ev.title}", "refund", ctx))
+
+
 def send_due_reminders(window_hours: int = 24) -> int:
     """Remind buyers of events starting within the next `window_hours`."""
     now = timezone.now()

@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from apps.core.dispatch import dispatch
 from apps.growth.services import notify_followers_of_new_event
 from apps.notifications.tasks import deliver_cancellation
+from apps.payments.tasks import refund_cancelled_event_task
 from apps.organizations.models import Perm
 from apps.organizations.permissions import OrgScopedMixin
 
@@ -146,6 +147,7 @@ class EventViewSet(_EventsPermMixin, viewsets.ModelViewSet):
         event.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
         event_pk = event.pk
         transaction.on_commit(lambda: dispatch(deliver_cancellation, event_pk))
+        transaction.on_commit(lambda: dispatch(refund_cancelled_event_task, event_pk))
         return self._respond(event)
 
     @extend_schema(request=None)

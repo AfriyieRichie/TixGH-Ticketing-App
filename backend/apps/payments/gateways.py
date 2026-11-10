@@ -38,6 +38,13 @@ class VerifyResult:
 
 
 @dataclass
+class RefundResult:
+    status: str  # "processing" | "processed" | "failed"
+    reference: str = ""
+    raw: dict = field(default_factory=dict)
+
+
+@dataclass
 class Split:
     """Send `organizer_amount` to the organizer's subaccount; the rest stays with the platform."""
 
@@ -75,6 +82,13 @@ class BaseGateway:
         """Ghana banks organizers can be paid into: [{"name", "code"}]."""
         raise NotImplementedError
 
+    def refund(self, payment, amount: Decimal, note: str = "") -> RefundResult:
+        """Return `amount` of a successful payment to the buyer's original MoMo/card."""
+        raise NotImplementedError
+
+    def refund_status(self, reference: str) -> str:
+        raise NotImplementedError
+
 
 class SimulatedGateway(BaseGateway):
     """
@@ -103,6 +117,12 @@ class SimulatedGateway(BaseGateway):
 
     def ensure_subaccount(self, payout_account):
         return f"SIM_{payout_account.pk}"
+
+    def refund(self, payment, amount, note=""):
+        return RefundResult("processed", reference=f"SIMREF-{payment.reference}")
+
+    def refund_status(self, reference):
+        return "processed"
 
     def list_banks(self):
         return [
@@ -207,6 +227,20 @@ class PaystackGateway(BaseGateway):
         payout_account.save(update_fields=["gateway_subaccount_code", "is_verified", "updated_at"])
         return payout_account.gateway_subaccount_code
 
+
+    REFUND_STATUS = {"pending": "processing", "processing": "processing", "processed": "processed",
+                     "failed": "failed", "reversed": "processed", "needs-attention": "failed"}
+
+    def refund(self, payment, amount, note=""):
+        data = self._request("POST", "/refund", json={
+            "transaction": payment.reference, "amount": to_minor(amount), "merchant_note": note[:200],
+        })
+        return RefundResult(self.REFUND_STATUS.get(str(data.get("status", "")).lower(), "processing"),
+                            reference=str(data.get("id", "")), raw=data)
+
+    def refund_status(self, reference):
+        data = self._request("GET", f"/refund/{reference}")
+        return self.REFUND_STATUS.get(str(data.get("status", "")).lower(), "processing")
 
     def list_banks(self):
         data = self._request("GET", "/bank", params={"currency": "GHS", "type": "ghipss"})

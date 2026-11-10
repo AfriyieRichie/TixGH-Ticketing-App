@@ -12,12 +12,14 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.orders.models import Order, OrderItem, OrderStatus, Ticket, TicketStatus
+from apps.payments.models import Refund, RefundKind
+from apps.payments.refunds import RefundError, create_refund
 from apps.organizations.models import Perm
 from apps.organizations.permissions import OrgScopedMixin
 
@@ -42,14 +44,26 @@ class _DashboardMixin(OrgScopedMixin):
 
 
 def _totals(orders) -> dict:
-    agg = orders.aggregate(
-        gross=Sum("total"), earnings=Sum("organizer_amount"), fees=Sum("fee_total"),
-        discounts=Sum("discount_total"), orders=Count("id"),
+    """Sales net of refunds. `orders` = paid orders; fully refunded orders are included so they net to zero."""
+    sold = Order.objects.filter(
+        Q(pk__in=orders.values("pk")) | Q(event__in=orders.values("event"), status=OrderStatus.REFUNDED)
     )
+    agg = sold.aggregate(
+        gross=Sum("total"), earnings=Sum("organizer_amount"), fees=Sum("fee_total"), discounts=Sum("discount_total"),
+    )
+    back = Refund.objects.filter(order__in=sold).aggregate(
+        amount=Sum("amount"), org=Sum("organizer_amount"), platform=Sum("platform_amount"))
+
+    def net(a, b):
+        return (a or ZERO) - (b or ZERO)
+
     return {
-        "gross_sales": _money(agg["gross"]), "organizer_earnings": _money(agg["earnings"]),
-        "booking_fees": _money(agg["fees"]), "discounts": _money(agg["discounts"]),
-        "orders": agg["orders"],
+        "gross_sales": _money(net(agg["gross"], back["amount"])),
+        "organizer_earnings": _money(net(agg["earnings"], back["org"])),
+        "booking_fees": _money(net(agg["fees"], back["platform"])),
+        "discounts": _money(agg["discounts"]),
+        "refunded": _money(back["amount"]),
+        "orders": orders.count(),
     }
 
 
@@ -196,3 +210,51 @@ class AttendeeListView(_DashboardMixin, ListAPIView):
                 writer.writerow([row[f] or "" for _, f in CSV_COLUMNS])
             return resp
         return super().get(request, *args, **kwargs)
+
+
+# --------------------------------------------------------------------------
+# Organizer refunds
+# --------------------------------------------------------------------------
+class RefundRequestSerializer(serializers.Serializer):
+    tickets = serializers.ListField(child=serializers.CharField(max_length=12), required=False,
+                                    help_text="Ticket codes to refund. Omit to refund the whole order.")
+    reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+
+def _refund_row(r) -> dict:
+    return {
+        "id": r.id, "order": r.order.reference, "buyer": r.order.buyer_name, "kind": r.kind,
+        "amount": _money(r.amount), "organizer_amount": _money(r.organizer_amount), "status": r.status,
+        "reason": r.reason, "tickets": [t.code for t in r.tickets.all()], "created_at": r.created_at,
+    }
+
+
+class OrderRefundView(_DashboardMixin, APIView):
+    """Refund a whole order or selected tickets: the ticket price goes back (booking fee isn't refunded)."""
+
+    @extend_schema(request=RefundRequestSerializer, responses=OpenApiTypes.OBJECT)
+    def post(self, request, org_slug, event_slug, reference):
+        if not self.membership.can(Perm.VIEW_FINANCE):
+            raise PermissionDenied("Only owners, admins and finance can issue refunds.")
+        order = get_object_or_404(Order, event=self.event, reference=reference.upper())
+        ser = RefundRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        tickets = None
+        if codes := ser.validated_data.get("tickets"):
+            wanted = {c.upper() for c in codes}
+            tickets = list(order.tickets.filter(code__in=wanted))
+            if len(tickets) != len(wanted):
+                raise ValidationError({"tickets": ["Some codes aren't on this order."]})
+        try:
+            refund = create_refund(order, kind=RefundKind.ORGANIZER, tickets=tickets,
+                                   reason=ser.validated_data.get("reason", ""), by_user=request.user)
+        except RefundError as exc:
+            raise ValidationError({"detail": str(exc)})
+        return Response(_refund_row(refund), status=201)
+
+
+class EventRefundListView(_DashboardMixin, APIView):
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    def get(self, request, org_slug, event_slug):
+        qs = Refund.objects.filter(order__event=self.event).select_related("order").prefetch_related("tickets")
+        return Response([_refund_row(r) for r in qs[:200]])

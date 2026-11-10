@@ -187,6 +187,10 @@ export function TicketSelector({ event }: { event: EventDetail }) {
             {total === 0 ? "Get tickets" : `Pay ${cedis(total)}`}
           </Button>
           {total > 0 && <p className="text-center text-xs text-zinc-500">Mobile Money (MTN, Telecel, AT) or card. Tickets are held for 10 minutes.</p>}
+          <p className="text-center text-xs text-zinc-500">
+            By continuing you agree to our <a href="/legal/terms" target="_blank" className="underline">Terms</a> and{" "}
+            <a href="/legal/refunds" target="_blank" className="underline">Refund Policy</a>.
+          </p>
         </form>
       )}
     </Box>

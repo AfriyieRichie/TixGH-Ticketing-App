@@ -90,7 +90,12 @@ export function Footer() {
           <p>Booking fee: paid tickets only. Free events are always free.</p>
         </div>
       </div>
-      <p className="border-t border-zinc-100 py-4 text-center text-xs text-zinc-500">© {new Date().getFullYear()} {SITE_NAME}. Made in Ghana 🇬🇭</p>
+      <p className="border-t border-zinc-100 py-4 text-center text-xs text-zinc-500">
+        © {new Date().getFullYear()} {SITE_NAME}. Made in Ghana 🇬🇭 ·{" "}
+        <Link href="/legal/terms" className="hover:text-brand">Terms</Link> ·{" "}
+        <Link href="/legal/privacy" className="hover:text-brand">Privacy</Link> ·{" "}
+        <Link href="/legal/refunds" className="hover:text-brand">Refunds</Link>
+      </p>
     </footer>
   );
 }

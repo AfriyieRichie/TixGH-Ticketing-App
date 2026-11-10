@@ -2,6 +2,7 @@ import hmac
 
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -14,6 +15,7 @@ from apps.events.models import Event
 from apps.notifications.tasks import deliver_order_confirmation
 from apps.payments.gateways import GatewayError
 from apps.payments.models import Payment
+from apps.payments.refunds import RefundError, buyer_refund_quote, request_buyer_refund
 from apps.payments.services import confirm_payment, start_payment
 
 from . import serializers as s
@@ -159,3 +161,23 @@ class OrderResendView(APIView):
             raise ValidationError({"detail": "Tickets are sent once the order is paid."})
         dispatch(deliver_order_confirmation, order.pk)
         return Response({"detail": "Tickets re-sent."}, status=status.HTTP_202_ACCEPTED)
+
+
+class OrderRefundRequestView(APIView):
+    """GET: can this order be refunded (and how much)? POST: request it. The booking fee isn't refunded."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(parameters=[_TOKEN_PARAM], responses=OpenApiTypes.OBJECT)
+    def get(self, request, reference):
+        return Response(buyer_refund_quote(_load_order(request, reference)))
+
+    @extend_schema(parameters=[_TOKEN_PARAM], request=None, responses=OpenApiTypes.OBJECT)
+    def post(self, request, reference):
+        order = _load_order(request, reference)
+        try:
+            refund = request_buyer_refund(order, by_user=request.user if request.user.is_authenticated else None)
+        except RefundError as exc:
+            raise ValidationError({"detail": str(exc)})
+        return Response({"amount": str(refund.amount), "status": refund.status,
+                         "tickets": [t.code for t in refund.tickets.all()]}, status=status.HTTP_201_CREATED)

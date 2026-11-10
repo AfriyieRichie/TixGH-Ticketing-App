@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, inline_serializer
 
 from apps.growth.services import process_campaigns, send_review_requests
+from apps.payments.refunds import check_refunds
 from apps.notifications.services import send_due_reminders
 from apps.orders.services import expire_stale_orders
 
@@ -69,6 +70,7 @@ def cron(request):
         "reminders_sent": send_due_reminders(),
         "campaign_emails": process_campaigns(),
         "review_requests": send_review_requests(),
+        "refunds": check_refunds(),
     }
     logger.info("cron: %s", result)
     return Response(result)

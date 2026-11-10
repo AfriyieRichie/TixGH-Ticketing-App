@@ -17,6 +17,9 @@ urlpatterns = [
     path("overview/", dashboard.OrganizationOverviewView.as_view(), name="org-overview"),
     path("events/<slug:event_slug>/stats/", dashboard.EventStatsView.as_view(), name="event-stats"),
     path("events/<slug:event_slug>/attendees/", dashboard.AttendeeListView.as_view(), name="event-attendees"),
+    path("events/<slug:event_slug>/refunds/", dashboard.EventRefundListView.as_view(), name="event-refunds"),
+    path("events/<slug:event_slug>/orders/<str:reference>/refund/", dashboard.OrderRefundView.as_view(),
+         name="order-refund"),
     path("events/<slug:event_slug>/", include(children.urls)),
     path("", include(router.urls)),
 ]

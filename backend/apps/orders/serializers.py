@@ -115,7 +115,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             "reference", "access_token", "status", "event", "buyer_name", "buyer_email", "buyer_phone",
-            "items", "promo_code", "subtotal", "discount_total", "fee_total", "total", "currency",
+            "items", "promo_code", "subtotal", "discount_total", "fee_total", "total", "refunded_amount", "currency",
             "fee_bearer", "expires_at", "seconds_left", "paid_at", "created_at", "payment", "tickets", "links",
         ]
 

@@ -8,5 +8,6 @@ urlpatterns = [
     path("orders/<str:reference>/", views.OrderDetailView.as_view(), name="order-detail"),
     path("orders/<str:reference>/verify/", views.OrderVerifyView.as_view(), name="order-verify"),
     path("orders/<str:reference>/resend/", views.OrderResendView.as_view(), name="order-resend"),
+    path("orders/<str:reference>/refund/", views.OrderRefundRequestView.as_view(), name="order-refund-request"),
     path("orders/<str:reference>/retry-payment/", views.OrderRetryPaymentView.as_view(), name="order-retry"),
 ]

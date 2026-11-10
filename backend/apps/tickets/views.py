@@ -160,8 +160,9 @@ def order_tickets_page(request, reference, token):
     tickets = list(order.tickets.select_related("ticket_type", "event"))
     # Tickets sent to someone else no longer show a QR to the buyer.
     hide = {t.pk: True for t in tickets if t.transferred_at}
-    ctx = _page_context(tickets, order.event, order=order, hide_qr=hide,
-                        pdf_url=f"{order.tickets_url}pdf/")
+    ctx = _page_context(tickets, order.event, order=order, hide_qr=hide, pdf_url=f"{order.tickets_url}pdf/",
+                        manage_url=f"{settings.FRONTEND_URL}/checkout/complete?reference={order.reference}"
+                                   f"&token={order.access_token}")
     return render(request, "tickets/tickets_page.html", ctx)
 
 

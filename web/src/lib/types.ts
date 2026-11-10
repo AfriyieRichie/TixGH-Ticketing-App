@@ -112,6 +112,7 @@ export type Order = {
   discount_total: string;
   fee_total: string;
   total: string;
+  refunded_amount: string;
   expires_at: string;
   seconds_left: number;
   paid_at: string | null;

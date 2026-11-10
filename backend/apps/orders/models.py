@@ -56,6 +56,7 @@ class Order(models.Model):
         "growth.TrackingLink", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders"
     )
     review_requested_at = models.DateTimeField(null=True, blank=True)
+    refunded_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
 
     status = models.CharField(max_length=15, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     promo_code = models.ForeignKey(PromoCode, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")

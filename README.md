@@ -65,7 +65,7 @@ the Owner, Admin or Gate scanner role.
 5. **Web app** ✅ home, search, event pages, checkout, login, my tickets, organizer dashboard (events, tickets, promo codes, sales, attendees + CSV, payouts, team)
 6. **Mobile app** ✅ one Expo app: events, offline ticket wallet, and a gate scanner (offline-capable, multi-gate sync, forged/duplicate detection)
 7. **Growth** ✅ follow organizers (auto email on new events), promoter tracking links with commission, opt-in email campaigns with unsubscribe and daily limits, reviews with organizer replies, trending and similar events
-8. Subscriptions and add-ons, refunds and resale, production deployment
+8. **Refunds and launch essentials** ✅ automatic refunds on cancellation, organizer refunds (order or ticket), buyer self-service within policy, legal pages, security headers, [LAUNCH.md](LAUNCH.md). Next: organizer plans and paid add-ons
 
 ## Business model
 
@@ -189,3 +189,15 @@ phones admit at the door and the dashboard's **Check-in desk** prints stickers (
 | `/u/{token}/` | Unsubscribe page linked from every campaign email |
 
 Campaign emails are drained by the scheduled job within `CAMPAIGN_DAILY_LIMIT` (default 200/day, to fit Brevo's free plan).
+
+## API overview (Phase 8: refunds)
+
+| Endpoint | Purpose |
+|---|---|
+| `POST organizations/{org}/events/{slug}/orders/{ref}/refund/` | Refund an order or `tickets: [codes]` (owner/admin/finance) |
+| `GET organizations/{org}/events/{slug}/refunds/` | Refunds for an event |
+| `GET/POST orders/{ref}/refund/?token=` | Buyer: refund quote / request within the event's policy |
+
+Cancelling an event refunds every paid order in full (booking fee included). Other refunds return the ticket price only.
+Refunds go to Paystack in the background, are retried up to 3 times and then polled until processed; staff can retry
+failed ones in the admin.
